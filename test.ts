@@ -1,21 +1,3 @@
-# xdv-node-provider
-
-
-## how to use the
-
-1. build stargate project
-2. copy generated client stubs from `vue` folder to `genclient.ts` and `genrestclient.ts`
-3. copy `types` folder
-
-## run manual tests
-
-1. `ts-node test.ts`
-
-
-## using xdv node provider (beta)
-
-```typescript
-
 import { XDVNodeProvider } from '.'
 
 export class Test {
@@ -43,8 +25,3 @@ export class Test {
 ;(async function bootstrap() {
   await Test.uploadFile()
 })()
-
-```
-
-### @molekilla for
-#### IDAO / IFESA / Fernando Romero 2021
