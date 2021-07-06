@@ -2,6 +2,7 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "downlevelIteration": true,
+    "allowJs": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
     "esModuleInterop": true,

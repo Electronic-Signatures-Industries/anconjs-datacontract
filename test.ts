@@ -8,17 +8,34 @@ export class Test {
       'walletcore',
       'abc123456789',
     )
-    const msg = await provider.msgCreateFile({
-      creator: 'xdv1k8pm7722uewy5etnmt9ecywt9sem5dcer5ltue',
+    const msg = await provider.xdvnode.msgCreateFile({
+      creator: 'xdv1hm9hcatmaat4dl6wv4303pflefzg9ep98qqej0',
       contentType: 'text/plain',
       data: Buffer.from('hello world'),
     })
-    const fee = [];
-    const result = await provider.signAndBroadcast([msg], {
+
+  const s =  await provider.bank.msgSend({
+      fromAddress: 'xdv1hm9hcatmaat4dl6wv4303pflefzg9ep98qqej0',
+      toAddress: 'xdv1hm9hcatmaat4dl6wv4303pflefzg9ep98qqej0',
+      amount: [
+        {
+          denom: 'token',
+          amount: '100',
+        },
+      ],
+    })
+
+    const fee = [        {
+          denom: 'token',
+          amount: '100',
+        },]
+    const result = await provider.xdvnode.signAndBroadcast([s, msg], {
       fee: { amount: fee, gas: '200000' },
     })
 
     console.log(result)
+  
+    // provider.xdvnode.
   }
 }
 
