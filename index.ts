@@ -1,13 +1,19 @@
 require('dotenv').config()
 
 import { DirectSecp256k1HdWallet, Registry } from '@cosmjs/proto-signing'
-import { defaultRegistryTypes, SigningStargateClient, StargateClient } from '@cosmjs/stargate'
-// import { MsgCreateFile,  MsgClientImpl } from './protolib/xdvnode/tx' // Replace with your own Msg import
+import {
+  createProtobufRpcClient,
+  defaultRegistryTypes,
+  QueryClient,
+  SigningStargateClient,
+  StargateClient,
+} from '@cosmjs/stargate'
 
 import { KeystoreDbModel, Wallet } from 'xdv-universal-wallet-core'
 import { Tendermint34Client } from '@cosmjs/tendermint-rpc'
 import * as xdvnode from './xdvnode'
 import * as bank from './bank'
+
 
 export class XDVNodeProvider {
   registry: Registry
@@ -17,7 +23,6 @@ export class XDVNodeProvider {
    */
   constructor() {
     this.wallet = new Wallet({ isWeb: false })
-    
   }
 
   /**
@@ -30,7 +35,6 @@ export class XDVNodeProvider {
     await this.wallet.enrollAccount({
       accountName,
     })
-
   }
 
   /**
@@ -114,19 +118,18 @@ export class XDVNodeProvider {
       keystore.mnemonic,
       { prefix: 'xdv' },
     )
-    
 
-//     const msg = await txClient.msgCreateFile(value)
-//     const result = await txClient.signAndBroadcast([msg], {fee: { amount: fee, 
-// gas: "200000" }, memo})
+    //     const msg = await txClient.msgCreateFile(value)
+    //     const result = await txClient.signAndBroadcast([msg], {fee: { amount: fee,
+    // gas: "200000" }, memo})
 
-    return { 
-      bank: await bank.txClient(
-        signer,
-      ),
-      xdvnode: await xdvnode.txClient(
-        signer,
-      )
+    const tm = await Tendermint34Client.connect('http://localhost:26657')
+
+    return {
+      tmclient: tm,
+      stargate: await StargateClient.connect('http://localhost:26657'),
+      bank: await bank.txClient(signer),
+      xdvnode: await xdvnode.txClient(signer),
     }
   }
 }
