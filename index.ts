@@ -13,7 +13,11 @@ import { KeystoreDbModel, Wallet } from 'xdv-universal-wallet-core'
 import { Tendermint34Client } from '@cosmjs/tendermint-rpc'
 import * as xdvnode from './xdvnode'
 import * as bank from './bank'
-
+import { MsgClientImpl } from './types/xdvnode/tx'
+import {
+  instanceOfRpcStreamingClient,
+  WebsocketClient,
+} from '@cosmjs/tendermint-rpc/build/rpcclients'
 
 export class XDVNodeProvider {
   registry: Registry
@@ -123,13 +127,21 @@ export class XDVNodeProvider {
     //     const result = await txClient.signAndBroadcast([msg], {fee: { amount: fee,
     // gas: "200000" }, memo})
 
-    const tm = await Tendermint34Client.connect('http://localhost:26657')
+    const tm = await Tendermint34Client.connect('ws://localhost:26657/')
+
+    const rpc = createProtobufRpcClient(QueryClient.withExtensions(tm))
+    const query = new MsgClientImpl(rpc)
 
     return {
+      query,
       tmclient: tm,
       stargate: await StargateClient.connect('http://localhost:26657'),
-      bank: await bank.txClient(signer),
-      xdvnode: await xdvnode.txClient(signer),
+      bank: await bank.txClient(signer, {
+        addr: 'ws://localhost:26657',
+      }),
+      xdvnode: await xdvnode.txClient(signer, {
+        addr: 'ws://localhost:26657',
+      }),
     }
   }
 }

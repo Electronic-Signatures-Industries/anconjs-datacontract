@@ -1,10 +1,19 @@
+import { fromBase64, fromHex, Bech32 } from '@cosmjs/encoding'
 import { decodeTxRaw } from '@cosmjs/proto-signing'
+import { assertIsBroadcastTxSuccess, logs } from '@cosmjs/stargate'
+import {
+  ABCIMessageLog,
+  TxMsgData,
+  TxResponse,
+} from '@cosmjs/stargate/build/codec/cosmos/base/abci/v1beta1/abci'
+import { hexlify } from 'ethers/lib/utils'
 import { XDVNodeProvider } from '.'
 import {
   MsgClientImpl,
   MsgCreateFile,
   MsgCreateFileResponse,
 } from './types/xdvnode/tx'
+import { Reader, util, configure, Writer } from 'protobufjs/minimal'
 
 export class Test {
   static async uploadFile() {
@@ -17,7 +26,7 @@ export class Test {
     const msg = await provider.xdvnode.msgCreateFile({
       creator: 'xdv1fqc34u04rus0xrpmw2pr5w86e9xmdw7xeusw29',
       contentType: 'text/plain',
-      data: Buffer.from('hello world'),
+      data: Buffer.from('hello world!!!!!!!!!!'),
     })
 
     const s = await provider.bank.msgSend({
@@ -37,22 +46,32 @@ export class Test {
         amount: '100',
       },
     ]
+    const decoder = new TextDecoder()
+    const query = `message.action='CreateFile'`
+
+    provider.tmclient.subscribeTx(query).addListener({
+      next: async (log: any) => {
+        const rd = (new Reader(log.result.data))
+        // rd.uint32()
+        rd.string()
+        console.log(
+          rd.string()
+          )
+      },
+    })
+
     const result = await provider.xdvnode.signAndBroadcast([msg], {
       fee: { amount: fee, gas: '200000' },
     })
 
-    const hash = Buffer.from(`0x${result.transactionHash}`)
-    console.log(hash)
-    console.log(result)
-    const query = `tx.height=${result.height}`
-    // &prove=true&page=1&per_page=30&order_by=asc`
-    const tx = await provider.tmclient.txSearch({
-      query
-    })
+    assertIsBroadcastTxSuccess(result)
+    // const r = await provider.xdvnode..CreateFile({
+    //   creator: 'xdv1fqc34u04rus0xrpmw2pr5w86e9xmdw7xeusw29',
+    //   contentType: 'text/plain',
+    //   data: Buffer.from('hello world!!!!!!!!!!'),
+    // })
 
-    console.log(tx)
-    console.log(tx.totalCount, tx.txs[0].result)
-    console.log(MsgCreateFileResponse.decode(tx.txs[0].result.data))
+    // console.log(result)
   }
 }
 
