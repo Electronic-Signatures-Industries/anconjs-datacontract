@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 /* eslint-disable */
 /* tslint:disable */
 /*

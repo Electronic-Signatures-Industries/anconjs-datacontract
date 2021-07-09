@@ -129,13 +129,15 @@ export class XDVNodeProvider {
 
     const tm = await Tendermint34Client.connect('ws://localhost:26657/')
 
-    const rpc = createProtobufRpcClient(QueryClient.withExtensions(tm))
-    const query = new MsgClientImpl(rpc)
-
     return {
-      query,
+      query: await xdvnode.queryClient({
+        addr: 'http://localhost:1317'
+      }),
       tmclient: tm,
-      stargate: await StargateClient.connect('http://localhost:26657'),
+      stargate: await SigningStargateClient.connectWithSigner('ws://localhost:26657',
+      signer, {
+        registry:  xdvnode.registry,
+      }),
       bank: await bank.txClient(signer, {
         addr: 'ws://localhost:26657',
       }),
