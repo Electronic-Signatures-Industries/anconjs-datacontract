@@ -27,37 +27,31 @@ import Long from 'long'
 
 export class Test {
   static async uploadFile() {
+    const data = `{
+		link: 'bafyreib77wpm5tvgkbr4t4aiiopjyispw76h2trd5yvpzmq6cejdjhcsie',
+		payload: 'AXESID_9ns7OplBjyfAIQ56cIk-3_H1OI-4q_LIeERI0nFJB',
+		signatures: [
+		  {
+			protected: 'eyJhbGciOiJSUzI1NiIsImtpZCI6ImRpZDprZXk6ekFIZDdoQ1dXcjgxUlZIZkxYMkNaRFladGNDR2lMQXc5czdyRzRWdjhlQ3g4RERkZiN6QUhkN2hDV1dyODFSVkhmTFgyQ1pEWVp0Y0NHaUxBdzlzN3JHNFZ2OGVDeDhERGRmIn0',
+			signature: 'NiQ236iEKLjkJ7zqU4u1GIqsnV0fj9XU3fp8th8lLqCRstn-UtiL-CZE4-WQBPm_N_brRqyCdTiqRcMp3wAybve8MRFzY1d8DEnD8iyxY_ZJOeLr_d9hSKDqLCX80uuxjPk89MExrK19pC36k44kAO1wIYBwCn8iiiIHtkPrYnebJ1iWS5JTd_ZaHMitZ99QCNpmQG3-1BSNXucERr61Mn9VrLgwpQNlCfC_m_QXCsKYhgTo020fDK0aHuAgmMAGKW-s9F9BA-PGvNike_S3KjKiy0dmcWi-J07N7d5hgYXh8l0RChwz_yLFO8o6k0EgEZbFTZdLqeuYM6VHoGWpDQ'
+		  }
+		]
+	  }`
+
     const client = new XDVNodeProvider()
     await client.createAccount('walletcore', 'abc123456789')
     const provider = await client.createXDVProvider(
       'walletcore',
       'abc123456789',
     )
-    const address = 'xdv1fqc34u04rus0xrpmw2pr5w86e9xmdw7xeusw29'
+    const address = 'xdv1j0sdejsgze8wqyygf453nhqv9vjklfpamfw694'
     const msg = MsgCreateFile.fromPartial({
       creator: address,
-      contentType: 'text/plain',
-      data: Buffer.from('hello world!!!!!!!!!!'),
+      contentType: 'application/json',
+      data: Buffer.from(data),
     })
 
-    const s = await provider.bank.msgSend({
-      fromAddress: address,
-      toAddress: address,
-      amount: [
-        {
-          denom: 'token',
-          amount: '100',
-        },
-      ],
-    })
 
-    const fee = [
-      {
-        denom: 'token',
-        amount: '100',
-      },
-    ]
-    const decoder = new TextDecoder()
     const query = `message.action='CreateFile'`
 
     provider.tmclient.subscribeTx(query).addListener({
@@ -68,22 +62,17 @@ export class Test {
         const c = rd.skip(4)
         const resp = MsgCreateFileResponse.decode(c.bytes())
         try {
-        const cid = await provider.query.queryFile(resp.cid)
-        console.log(log.result, resp, await cid.text())
+          const cid = await provider.query.queryFile(resp.cid)
+          console.log(log.result, resp, await cid.text())
         } catch (err) {
           console.log(err)
         }
       },
     })
 
-    const acct = await provider.stargate.getAccount(address)
-    const body = TxBody.fromPartial({
-      messages: [provider.xdvnode.msgCreateFile(msg)],
-    })
-
     const ss = await provider.stargate.signAndBroadcast(
       address,
-      body.messages,
+      [provider.xdvnode.msgCreateFile(msg)],
       {
         amount: [
           {
@@ -96,12 +85,6 @@ export class Test {
     )
 
     console.log(ss)
-    //    assertIsBroadcastTxSuccess(result)
-    // const r = await provider.xdvnode..CreateFile({
-    //   creator: 'xdv1fqc34u04rus0xrpmw2pr5w86e9xmdw7xeusw29',
-    //   contentType: 'text/plain',
-    //   data: Buffer.from('hello world!!!!!!!!!!'),
-    // })
   }
 }
 
