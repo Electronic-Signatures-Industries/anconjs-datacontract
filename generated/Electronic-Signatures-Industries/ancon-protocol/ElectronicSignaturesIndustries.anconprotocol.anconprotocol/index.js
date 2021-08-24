@@ -105,11 +105,7 @@ export default {
         async QueryResource({ commit, rootGetters, getters }, { options: { subscribe, all } = { subscribe: false, all: false }, params: { ...key }, query = null }) {
             try {
                 const queryClient = await initQueryClient(rootGetters);
-                let value = (await queryClient.queryResource(query)).data;
-                while (all && value.pagination && value.pagination.nextKey != null) {
-                    let next_values = (await queryClient.queryResource({ ...query, 'pagination.key': value.pagination.nextKey })).data;
-                    value = mergeResults(value, next_values);
-                }
+                let value = (await queryClient.queryResource(key.cid, key.path)).data;
                 commit('QUERY', { query: 'Resource', key: { params: { ...key }, query }, value });
                 if (subscribe)
                     commit('SUBSCRIBE', { action: 'QueryResource', payload: { options: { all }, params: { ...key }, query } });

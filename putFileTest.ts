@@ -1,7 +1,10 @@
 
-import { XDVNodeProvider } from '.'
-import { MsgFile, MsgFileMetadataResponse } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
+import { MsgData } from '@cosmjs/stargate/build/codec/cosmos/base/abci/v1beta1/abci'
+import { TxEvent } from '@cosmjs/tendermint-rpc/build/tendermint34'
+import { AnconClient } from '.'
+import { MsgFileResponse } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 
+global['fetch'] = require('node-fetch')
 export class Test {
   static async uploadFile() {
     const data = `{
@@ -15,45 +18,46 @@ export class Test {
 		]
 	  }`
 
-    const client = new XDVNodeProvider()
+    const client = new AnconClient()
     await client.createAccount('walletcore', 'abc123456789')
-    const provider = await client.createXDVProvider(
+    const ancon = await client.create(
       'walletcore',
       'abc123456789',
     )
     const address = process.env.ALICE;
-    const msg = MsgFile.fromPartial({
+    const msg = {
       creator: address,
       contentType: 'application/json',
       content: 'hello',
       mode:"",
       path: 'index.html',
       time: new Date().getTime().toString(10),
-    })
+      did: '',
+      from: '',
+    }
 
     const query = `message.action='File'`
 
-    provider.tmclient.subscribeTx(query).addListener({
-      next: async (log: any) => {
-        console.log(log)
-        const h = MsgFileMetadataResponse.decode(log.result.data)
-        // const rd = new Reader(log.result.data)
-        console.log(MsgFileMetadataResponse.toJSON(h))
-        // rd.uint32()
-        // rd.string()
-        // const c = rd.skip(4)
-        // const resp = MsgCreateFileResponse.decode(c.bytes())
-        // try {
-        //   const cid = await provider.query.queryFile(resp.cid)
-        //   console.log(log.result, resp, await cid.text())
-        // } catch (err) {
-        //   console.log(err)
-        // }
+    ancon.tendermint.subscribeTx(query).addListener({
+      next: async  (log: TxEvent) => {        
+        const d = MsgData.fromJSON(log.result)
+        const res = MsgFileResponse.decode(d.data)
+
+        const cid = res.hash.substring(10);        
+        console.log(log, d, cid)
+
+        const content = await ancon.file.get(
+          cid,
+          ''
+        )
+
+        console.log(content)
+
       },
     })
 
-    const ss = await provider.ancon.signAndBroadcast(
-      [provider.ancon.msgFile(msg)],
+    const ss = await ancon.file.add(
+      msg,
       {
         fee: {
           amount: [
