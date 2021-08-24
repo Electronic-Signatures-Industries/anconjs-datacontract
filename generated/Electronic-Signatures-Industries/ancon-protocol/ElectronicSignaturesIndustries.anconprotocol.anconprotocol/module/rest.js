@@ -70,11 +70,13 @@ export class HttpClient {
                 signal: cancelToken ? this.createAbortSignal(cancelToken) : void 0,
                 body: typeof body === "undefined" || body === null ? null : payloadFormatter(body),
             }).then(async (response) => {
+                console.log(response)
                 const r = response;
                 r.data = null;
                 r.error = null;
                 const data = await response[format]()
                     .then((data) => {
+                        console.log(data)
                     if (r.ok) {
                         r.data = data;
                     }
@@ -84,6 +86,7 @@ export class HttpClient {
                     return r;
                 })
                     .catch((e) => {
+                        console.log(e)
                     r.error = e;
                     return r;
                 });
