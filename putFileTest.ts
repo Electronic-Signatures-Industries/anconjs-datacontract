@@ -1,29 +1,6 @@
-import { fromBase64, fromHex, Bech32 } from '@cosmjs/encoding'
 
-import { assertIsBroadcastTxSuccess, logs } from '@cosmjs/stargate'
-import {
-  ABCIMessageLog,
-  TxMsgData,
-  TxResponse,
-} from '@cosmjs/stargate/build/codec/cosmos/base/abci/v1beta1/abci'
-import { hexlify } from 'ethers/lib/utils'
 import { XDVNodeProvider } from '.'
-import {
-  MsgClientImpl,
-  MsgCreateFile,
-  MsgCreateFileResponse,
-} from './types/xdvnode/tx'
-import { Reader, util, configure, Writer } from 'protobufjs/minimal'
-import { TxBody } from '@cosmjs/stargate/build/codec/cosmos/tx/v1beta1/tx'
-import {
-  AuthInfo,
-  SignDoc,
-  Tx,
-} from '@cosmjs/proto-signing/build/codec/cosmos/tx/v1beta1/tx'
-import { makeAuthInfoBytes, makeSignDoc } from '@cosmjs/proto-signing'
-import { SignMode } from '@cosmjs/proto-signing/build/codec/cosmos/tx/signing/v1beta1/signing'
-import { Any } from '@cosmjs/proto-signing/build/codec/google/protobuf/any'
-import Long from 'long'
+import { MsgFile, MsgFileMetadataResponse } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 
 export class Test {
   static async uploadFile() {
@@ -44,43 +21,49 @@ export class Test {
       'walletcore',
       'abc123456789',
     )
-    const address = 'xdv1j0sdejsgze8wqyygf453nhqv9vjklfpamfw694'
-    const msg = MsgCreateFile.fromPartial({
+    const address = process.env.ALICE;
+    const msg = MsgFile.fromPartial({
       creator: address,
       contentType: 'application/json',
-      data: Buffer.from(data),
+      content: 'hello',
+      mode:"",
+      path: 'index.html',
+      time: new Date().getTime().toString(10),
     })
 
-
-    const query = `message.action='CreateFile'`
+    const query = `message.action='File'`
 
     provider.tmclient.subscribeTx(query).addListener({
       next: async (log: any) => {
-        const rd = new Reader(log.result.data)
+        console.log(log)
+        const h = MsgFileMetadataResponse.decode(log.result.data)
+        // const rd = new Reader(log.result.data)
+        console.log(MsgFileMetadataResponse.toJSON(h))
         // rd.uint32()
-        rd.string()
-        const c = rd.skip(4)
-        const resp = MsgCreateFileResponse.decode(c.bytes())
-        try {
-          const cid = await provider.query.queryFile(resp.cid)
-          console.log(log.result, resp, await cid.text())
-        } catch (err) {
-          console.log(err)
-        }
+        // rd.string()
+        // const c = rd.skip(4)
+        // const resp = MsgCreateFileResponse.decode(c.bytes())
+        // try {
+        //   const cid = await provider.query.queryFile(resp.cid)
+        //   console.log(log.result, resp, await cid.text())
+        // } catch (err) {
+        //   console.log(err)
+        // }
       },
     })
 
-    const ss = await provider.stargate.signAndBroadcast(
-      address,
-      [provider.xdvnode.msgCreateFile(msg)],
+    const ss = await provider.ancon.signAndBroadcast(
+      [provider.ancon.msgFile(msg)],
       {
-        amount: [
-          {
-            denom: 'token',
-            amount: '4',
-          },
-        ],
-        gas: '200000',
+        fee: {
+          amount: [
+            {
+              denom: 'token',
+              amount: '4',
+            },
+          ],
+          gas: '200000',
+        },
       },
     )
 

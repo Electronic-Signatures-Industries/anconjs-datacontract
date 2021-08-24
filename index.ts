@@ -1,23 +1,9 @@
 require('dotenv').config()
-
 import { DirectSecp256k1HdWallet, Registry } from '@cosmjs/proto-signing'
-import {
-  createProtobufRpcClient,
-  defaultRegistryTypes,
-  QueryClient,
-  SigningStargateClient,
-  StargateClient,
-} from '@cosmjs/stargate'
 
 import { KeystoreDbModel, Wallet } from 'xdv-universal-wallet-core'
 import { Tendermint34Client } from '@cosmjs/tendermint-rpc'
-import * as xdvnode from './xdvnode'
-import * as bank from './bank'
-import { MsgClientImpl } from './types/xdvnode/tx'
-import {
-  instanceOfRpcStreamingClient,
-  WebsocketClient,
-} from '@cosmjs/tendermint-rpc/build/rpcclients'
+import { queryClient, txClient } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/index'
 
 export class XDVNodeProvider {
   registry: Registry
@@ -120,7 +106,7 @@ export class XDVNodeProvider {
     console.log(keystore)
     const signer = await DirectSecp256k1HdWallet.fromMnemonic(
       keystore.mnemonic,
-      { prefix: 'xdv' },
+      { prefix: 'cosmos' },
     )
 
     //     const msg = await txClient.msgCreateFile(value)
@@ -130,18 +116,11 @@ export class XDVNodeProvider {
     const tm = await Tendermint34Client.connect('ws://localhost:26657/')
 
     return {
-      query: await xdvnode.queryClient({
+      query: await queryClient({
         addr: 'http://localhost:1317'
       }),
       tmclient: tm,
-      stargate: await SigningStargateClient.connectWithSigner('ws://localhost:26657',
-      signer, {
-        registry:  xdvnode.registry,
-      }),
-      bank: await bank.txClient(signer, {
-        addr: 'ws://localhost:26657',
-      }),
-      xdvnode: await xdvnode.txClient(signer, {
+      ancon: await txClient(signer, {
         addr: 'ws://localhost:26657',
       }),
     }
