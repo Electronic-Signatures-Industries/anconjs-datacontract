@@ -12,8 +12,8 @@ export class AnconClient {
   /**
    * Register Msg imports
    */
-  constructor() {
-    this.wallet = new Wallet({ isWeb: false })
+  constructor(isWeb: boolean, private apiUrl: string, private rpcUrl: string) {
+    this.wallet = new Wallet({ isWeb })
   }
 
   /**
@@ -81,13 +81,12 @@ export class AnconClient {
   }
 
 
-  async create(accountName: string, passphrase: string) {
-    const acct = (await this.wallet.getAccount()) as any
+  async create(accountName: string, passphrase: string, mnemonic?: string) {
+    const acct = (await this.wallet.getAccount(accountName)) as any
     let walletId = ''
-    if (acct.keystores.length === 0) {
-      //  TODO: Mnemonic must come from XDV Node Provider because it is using a custom chain
+    if (acct.keystores.length === 0 && mnemonic) {
       walletId = await this.wallet.addWallet({
-        mnemonic: process.env.ALICE_M,
+        mnemonic,
       })
     } else {
       walletId = acct.keystores[0].walletId
@@ -97,7 +96,6 @@ export class AnconClient {
       (k: KeystoreDbModel) => k.walletId === walletId,
     )
 
-    console.log(keystore)
     const signer = await DirectSecp256k1HdWallet.fromMnemonic(
       keystore.mnemonic,
       { prefix: 'cosmos' },
@@ -107,12 +105,12 @@ export class AnconClient {
     //     const result = await txClient.signAndBroadcast([msg], {fee: { amount: fee,
     // gas: "200000" }, memo})
 
-    const tm = await Tendermint34Client.connect('ws://localhost:26657/')
+    const tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
-      addr: 'http://localhost:1317',
+      addr: this.apiUrl,
     })
     const msgCli = await txClient(signer, {
-      addr: 'ws://localhost:26657',
+      addr: this.rpcUrl,
     })
     const ancon = {
       query: queryCli,
