@@ -1,4 +1,3 @@
-require('dotenv').config()
 import { DirectSecp256k1HdWallet, Registry } from '@cosmjs/proto-signing'
 
 import { KeystoreDbModel, Wallet } from 'xdv-universal-wallet-core'
@@ -22,33 +21,25 @@ export class AnconClient {
    * @param accountName Account name
    * @param passphrase Passphrase
    */
-  async createAccount(accountName: string, passphrase: string) {
-    await this.wallet.open(accountName, passphrase)
-    await this.wallet.enrollAccount({
-      accountName,
-    })
-  }
-
   /**
    * Creates a wallet
    * @param accountName Account name
    * @param passphrase Passphrase
    * @returns
    */
-  async createWallet(accountName: string, passphrase: string) {
+   async createWallet(accountName: string, passphrase: string) {
     await this.wallet.open(accountName, passphrase)
 
     const acct = (await this.wallet.getAccount()) as any
-    let walletId
+    let walletId: string
 
     if (acct.keystores.length === 0) {
-      //  TODO: Mnemonic must come from XDV Node Provider because it is using a custom chain
       walletId = await this.wallet.addWallet()
     } else {
       walletId = acct.keystores[0].walletId
     }
 
-    const wallet = await this.wallet.createEd25519({
+    const wallet = await this.wallet.createES256K({
       passphrase: passphrase,
       walletId: walletId,
     })
@@ -81,13 +72,14 @@ export class AnconClient {
       mnemonic,
     })
 
-    const wallet = await this.wallet.createEd25519({
+    const wallet = await this.wallet.createES256K({
       passphrase: passphrase,
       walletId: walletId,
     })
 
     return wallet as any
   }
+
 
   async create(accountName: string, passphrase: string) {
     const acct = (await this.wallet.getAccount()) as any
