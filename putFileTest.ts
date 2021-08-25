@@ -18,12 +18,17 @@ export class Test {
 		]
 	  }`
 
-    const client = new AnconClient()
-    await client.createAccount('walletcore', 'abc123456789')
+    const client = new AnconClient(
+      false,
+      'https://ancon.dao.pa/rest',
+      'wss://ancon.dao.pa/rpc'
+    );
     const ancon = await client.create(
       'walletcore',
       'abc123456789',
+      process.env.ALICE_M,
     )
+
     const address = process.env.ALICE;
     const msg = {
       creator: address,
