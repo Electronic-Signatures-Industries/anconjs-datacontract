@@ -1,10 +1,12 @@
-# AnconJS
+require('dotenv').config()
+import { TxEvent } from '@cosmjs/tendermint-rpc/build/tendermint34'
+import { AnconClient } from '.'
+import { MsgFileResponse } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 
+global['fetch'] = require('node-fetch')
+export class Sample {
+  static async addFile() {
 
-
-## Usage
-
-```typescript
     // Creates a new Ancon client instance
     // isWeb = rxdb for web or node
     // api url 
@@ -69,7 +71,9 @@
       },
     })
 
-```
+  }
+}
 
-### @molekilla for
-#### IDAO / IFESA 2021
+;(async function bootstrap() {
+  await Sample.addFile()
+})()

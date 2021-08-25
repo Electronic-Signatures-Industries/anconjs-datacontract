@@ -98,10 +98,11 @@ export class AnconClient {
   async create(accountName: string, passphrase: string, mnemonic?: string) {
     let signer = this.signer
 
-    if (!signer) {
+      const resp = await this.wallet.open(accountName, passphrase)
       const acct = (await this.wallet.getAccount(accountName)) as any
       let walletId = ''
-      if (acct.keystores.length === 0 && mnemonic) {
+      if (acct.keystores.length === 0) {
+        console.log('creating wallet ' + mnemonic)
         walletId = await this.wallet.addWallet({
           mnemonic,
         })
@@ -112,11 +113,9 @@ export class AnconClient {
       const keystore = await acct.keystores.find(
         (k: KeystoreDbModel) => k.walletId === walletId,
       )
-
       signer = await DirectSecp256k1HdWallet.fromMnemonic(keystore.mnemonic, {
         prefix: 'cosmos',
       })
-    }
 
     const tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
