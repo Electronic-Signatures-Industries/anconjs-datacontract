@@ -13,7 +13,7 @@
       false,
       'https://ancon.dao.pa/rest',
       'ws://ancon.dao.pa:26657',
-      // If Kelpr Wallet, add signer here
+      // If Keplr Wallet, add signer here
     )
 
     // User creates new wallet / optional

@@ -1,12 +1,12 @@
 {
-  "name": "xdv-node-provider",
-  "version": "1.0.0",
+  "name": "anconjs",
+  "version": "0.1.0",
   "description": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "lib/sample.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Industrias de Firmas Electronicas",
+  "license": "MIT and Apache License",
   "dependencies": {
     "@cosmjs/launchpad": "^0.25.5",
     "@cosmjs/proto-signing": "^0.25.5",

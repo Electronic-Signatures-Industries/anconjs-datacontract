@@ -54,6 +54,7 @@ export class Sample {
         // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
         const content = await ancon.file.get(cid, '')
 
+        console.log(content)
       },
     })
 
