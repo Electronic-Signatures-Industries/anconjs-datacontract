@@ -1,6 +1,6 @@
 {
   "name": "anconjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "scripts": {
     "test": "lib/sample.js"

@@ -9,7 +9,9 @@ import { Tendermint34Client } from '@cosmjs/tendermint-rpc'
 import { BroadcastTxResponse } from '@cosmjs/stargate'
 import {
   MsgFile,
+  MsgFileResponse,
   MsgMetadata,
+  MsgMetadataResponse,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 import {
   txClient,
@@ -19,6 +21,11 @@ import {
 export class AnconClient {
   registry: Registry
   wallet: Wallet
+  tm: Tendermint34Client
+  queryService: import('/home/rogelio/Code/xdv/xdv-node-provider/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/rest').Api<
+    unknown
+  >
+  msgService: any
   /**
    * Register Msg imports
    */
@@ -118,17 +125,19 @@ export class AnconClient {
         prefix: 'cosmos',
       })
     }
-    const tm = await Tendermint34Client.connect(this.rpcUrl)
+    this.tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
       addr: this.apiUrl,
     })
+    this.queryService = queryCli
     const msgCli = await txClient(signer, {
       addr: this.rpcUrl,
     })
+    this.msgService = msgCli
     const ancon = {
       query: queryCli,
       msg: msgCli,
-      tendermint: tm,
+      tendermint: this.tm,
       metadata: {
         add: function (
           msg: MsgMetadata,
@@ -156,4 +165,62 @@ export class AnconClient {
 
     return ancon
   }
+
+    /**
+   * Executes a MsgMetadata transaction
+   * @param msg MsgMetadata type
+   * @param fee Fee type
+   * @returns Promise<{wait, receipt}>
+   */
+  async executeMetadata(msg: MsgMetadata, fee) {
+    const wait = new Promise(async (resolve, reject) => {
+      const query = `message.action='Metadata'`
+      this.tm.subscribeTx(query).addListener({
+        next: async (log: any) => {
+          // Decode response
+          const res = MsgMetadataResponse.decode(log.result.data)
+
+          // Hack: Protobuf issue
+          const cid = res.cid.substring(10)
+
+          // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
+          resolve(cid)
+        },
+      })
+    })
+
+    const encoded = this.msgService.msgMetadata(msg)
+    const receipt = this.msgService.signAndBroadcast([encoded], fee)
+
+    return { wait, receipt }
+  }
+
+  /**
+   * Executes a MsgFile transaction
+   * @param msg MsgFile type
+   * @param fee Fee type
+   * @returns Promise<{wait, receipt}>
+   */
+  async executeFile(msg: MsgFile, fee) {
+    const wait = new Promise(async (resolve, reject) => {
+      const query = `message.action='File'`
+      this.tm.subscribeTx(query).addListener({
+        next: async (log: any) => {
+          // Decode response
+          const res = MsgFileResponse.decode(log.result.data)
+
+          // Hack: Protobuf issue
+          const cid = res.hash.substring(10)
+
+          // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
+          resolve(cid)
+        },
+      })
+    })
+
+    const encoded = this.msgService.msgFile(msg)
+    const receipt = this.msgService.signAndBroadcast([encoded], fee)
+
+    return { wait, receipt }
+  }  
 }
