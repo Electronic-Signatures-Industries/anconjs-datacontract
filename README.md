@@ -1,6 +1,10 @@
 # AnconJS
 
 
+## Install
+
+`npm install anconjs -S`
+
 
 ## Usage
 
