@@ -17,6 +17,7 @@ import {
   txClient,
   queryClient,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
+import { Subject, Subscription } from 'rxjs'
 
 export class AnconClient {
   registry: Registry
@@ -26,6 +27,7 @@ export class AnconClient {
     unknown
   >
   msgService: any
+  account: any
   /**
    * Register Msg imports
    */
@@ -103,7 +105,7 @@ export class AnconClient {
   }
 
   async create(accountName: string, passphrase: string, mnemonic?: string) {
-    let signer = this.signer
+    let signer = this.signer as DirectSecp256k1HdWallet
 
     if (!this.signer) {
       const resp = await this.wallet.open(accountName, passphrase)
@@ -125,6 +127,8 @@ export class AnconClient {
         prefix: 'cosmos',
       })
     }
+
+    this.account = await signer.getAccounts()
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
       addr: this.apiUrl,
@@ -166,61 +170,126 @@ export class AnconClient {
     return ancon
   }
 
-    /**
-   * Executes a MsgMetadata transaction
-   * @param msg MsgMetadata type
-   * @param fee Fee type
-   * @returns Promise<{wait, receipt}>
+  /**
+   * Add Ancon Metadata
+   * @param name Identifies the asset to which this token represents.
+   * @param description Describes the asset to which this token represents.
+   * @param image A URI pointing to a resource with mime type image/* representing the asset to which this token represents.
+   * @param sources Current intellectual property.
+   * @param owner The owner is a DID identifier.
+   * @param parent Direct ascendant of the current intellectual property.
+   * @param verifiedCredentialRef Is the verified credential for the metadata
+   * @param links Sample of references included in the current intellectual property
+   * @param creator
+   * @param did
+   * @param from
    */
-  async executeMetadata(msg: MsgMetadata, fee) {
-    const wait = new Promise(async (resolve, reject) => {
-      const query = `message.action='Metadata'`
-      this.tm.subscribeTx(query).addListener({
-        next: async (log: any) => {
+  async executeMetadata({
+    name,
+    description,
+    image,
+    sources,
+    owner,
+    parent,
+    verifiedCredentialRef,
+    links,
+    creator,
+    did,
+    from,
+    fee,
+  }) {
+    const metadata = {
+      name: name,
+      description: description,
+      image: image,
+      sources: sources,
+      owner: owner,
+      parent: parent,
+      verified_credential_ref: verifiedCredentialRef,
+      links: links,
+      creator: creator,
+      did: did,
+      from: from,
+    }
+
+    const sub = new Subject<string>()
+    const query = `message.action='Metadata'`
+
+    const subscription = this.tm.subscribeTx(query).subscribe({
+      next: async (log: any) => {
+        try {
           // Decode response
           const res = MsgMetadataResponse.decode(log.result.data)
 
           // Hack: Protobuf issue
-          const cid = res.cid.substring(10)
+          const cid = res.cid.substring(14)
+          sub.next(cid)
+          sub.complete()
+        } catch (err) {
+          sub.error(err)
+        }
+      },
+    }) as Subscription
 
-          // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-          resolve(cid)
-        },
+    try {
+      const wait = new Promise((resolve, reject) => {
+        sub.subscribe({ next: (i) => resolve(i), error: (e) => reject(e) })
       })
-    })
-
-    const encoded = this.msgService.msgMetadata(msg)
-    const receipt = this.msgService.signAndBroadcast([encoded], fee)
-
-    return { wait, receipt }
+      const encoded = this.msgService.msgMetadata(metadata)
+      // hack
+      encoded.value.creator = creator
+      encoded.value.sources = JSON.stringify(encoded.value.sources)
+      encoded.value.links = JSON.stringify(encoded.value.links)
+      const tx = await this.msgService.signAndBroadcast([encoded], {
+        fee,
+      })
+      const cid = await wait
+      return { transaction: tx, cid }
+    } catch (e) {
+      throw e
+    } finally {
+      subscription.unsubscribe()
+    }
   }
-
   /**
-   * Executes a MsgFile transaction
-   * @param msg MsgFile type
-   * @param fee Fee type
-   * @returns Promise<{wait, receipt}>
+   * Add Ancon File
+   * @param
    */
-  async executeFile(msg: MsgFile, fee) {
-    const wait = new Promise(async (resolve, reject) => {
-      const query = `message.action='File'`
-      this.tm.subscribeTx(query).addListener({
-        next: async (log: any) => {
+  async addFile({ did, file, fee }) {
+    const sub = new Subject<string>()
+    ;(file as MsgFile).did = did
+    const query = `message.action='File'`
+
+    const subscription = this.tm.subscribeTx(query).subscribe({
+      next: async (log: any) => {
+        try {
           // Decode response
           const res = MsgFileResponse.decode(log.result.data)
 
           // Hack: Protobuf issue
           const cid = res.hash.substring(10)
+          sub.next(cid)
+          sub.complete()
+        } catch (err) {
+          sub.error(err)
+        }
+      },
+    }) as Subscription
 
-          // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-          resolve(cid)
-        },
+    try {
+      const wait = new Promise((resolve, reject) => {
+        sub.subscribe({ next: (i) => resolve(i), error: (e) => reject(e) })
       })
-    })
-
-    const encoded = this.msgService.msgFile(msg)
-    const receipt = this.msgService.signAndBroadcast([encoded], fee)
-
-    return { wait, receipt }
-  }  
+      const encoded = this.msgService.msgFile(file)
+      const tx = await this.msgService.signAndBroadcast([encoded], {
+        fee,
+      })
+      const cid = await wait
+      return { transaction: tx, cid }
+    } catch (e) {
+      throw e
+    } finally {
+      subscription.unsubscribe()
+    }
+  }
 }
