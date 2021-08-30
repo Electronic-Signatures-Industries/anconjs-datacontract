@@ -11,8 +11,8 @@
     // rpc url
     const client = new AnconClient(
       false,
-      'https://ancon.dao.pa/rest',
-      'ws://ancon.dao.pa:26657',
+      'https://apiancon.dao.pa',
+      'wss://rpcancon.dao.pa',
       // If Keplr Wallet, add signer here
     )
 
