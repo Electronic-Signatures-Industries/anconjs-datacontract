@@ -1,12 +1,13 @@
 import {
+  decodeTxRaw,
   DirectSecp256k1HdWallet,
   OfflineSigner,
   Registry,
 } from '@cosmjs/proto-signing'
-
+import { ethers, UnsignedTransaction } from 'ethers'
 import { KeystoreDbModel, Wallet } from 'xdv-universal-wallet-core'
 import { Tendermint34Client } from '@cosmjs/tendermint-rpc'
-import { BroadcastTxResponse } from '@cosmjs/stargate'
+import { BroadcastTxResponse, SigningStargateClient } from '@cosmjs/stargate'
 import {
   MsgFile,
   MsgFileResponse,
@@ -18,6 +19,7 @@ import {
   queryClient,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { Subject, Subscription } from 'rxjs'
+import { TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 
 export class AnconClient {
   registry: Registry
@@ -28,6 +30,8 @@ export class AnconClient {
   >
   msgService: any
   account: any
+  offlineSigner: SigningStargateClient
+  ethersclient: ethers.Wallet
   /**
    * Register Msg imports
    */
@@ -122,13 +126,25 @@ export class AnconClient {
       const keystore = await acct.keystores.find(
         (k: KeystoreDbModel) => k.walletId === walletId,
       )
+      this.ethersclient = ethers.Wallet.fromMnemonic(keystore.mnemonic)
+      this.ethersclient.connect(
+        new ethers.providers.JsonRpcProvider('http://localhost:8545'),
+      )
 
       signer = await DirectSecp256k1HdWallet.fromMnemonic(keystore.mnemonic, {
         prefix: 'ethm',
       })
     }
 
+    this.offlineSigner = await SigningStargateClient.offline(signer, {
+      prefix: 'ethm',
+      broadcastPollIntervalMs: 1000,
+      broadcastTimeoutMs: 15 * 1000,
+    })
+    const ethInstance = this.ethersclient
+    const offlineSig = this.offlineSigner
     this.account = await signer.getAccounts()
+    const defaultAccount = this.account
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
       addr: this.apiUrl,
@@ -143,16 +159,31 @@ export class AnconClient {
       msg: msgCli,
       tendermint: this.tm,
       metadata: {
-        add: function (
+        add: async function (
           msg: MsgMetadata,
           fee: any,
-        ): Promise<BroadcastTxResponse> {
+        ): Promise<string> {
           const encoded = ancon.msg.msgMetadata(msg)
+
+          // Sign offline with CosmJS
+          const sig = await offlineSig.sign(defaultAccount, [encoded], fee, '')
           
-          return ancon.msg.signAndBroadcast([encoded], fee)
+          // Set it to Data in a ethereum tx / SendTxArgs
+          const tx: UnsignedTransaction = {
+            data: ethers.utils.hexlify(new TextEncoder().encode(JSON.stringify(sig))),
+            value: 0,
+            chainId: 9000,
+          }
+          // @ts-ignore
+          const rpc = ethInstance as ethers.providers.JsonRpcProvider
+          const params = [tx]
+          const res = await rpc.send('ancon_sendSignedTx', params)
+
+          return res;
         },
+
         get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryResource(cid,{ path }, {})
+          const resp = await ancon.query.queryResource(cid, { path }, {})
           return resp.data
         },
       },
@@ -162,7 +193,7 @@ export class AnconClient {
           return ancon.msg.signAndBroadcast([encoded], fee)
         },
         get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryResource(cid, {path}, {})
+          const resp = await ancon.query.queryResource(cid, { path }, {})
           return resp.data
         },
       },
