@@ -124,7 +124,7 @@ export class AnconClient {
       )
 
       signer = await DirectSecp256k1HdWallet.fromMnemonic(keystore.mnemonic, {
-        prefix: 'cosmos',
+        prefix: 'ethm',
       })
     }
 
@@ -148,10 +148,11 @@ export class AnconClient {
           fee: any,
         ): Promise<BroadcastTxResponse> {
           const encoded = ancon.msg.msgMetadata(msg)
+          
           return ancon.msg.signAndBroadcast([encoded], fee)
         },
         get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryResource(cid, path, {})
+          const resp = await ancon.query.queryResource(cid,{ path }, {})
           return resp.data
         },
       },
@@ -161,7 +162,7 @@ export class AnconClient {
           return ancon.msg.signAndBroadcast([encoded], fee)
         },
         get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryResource(cid, path, {})
+          const resp = await ancon.query.queryResource(cid, {path}, {})
           return resp.data
         },
       },

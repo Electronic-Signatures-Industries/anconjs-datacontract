@@ -13,8 +13,8 @@ export class Sample {
     // rpc url
     const client = new AnconClient(
       false,
-      'https://ancon.dao.pa/rest',
-      'ws://ancon.dao.pa:26657',
+      'http://localhost:1317',
+      'ws://localhost:26657',
       // If Kelpr Wallet, add signer here
     )
 
@@ -22,10 +22,10 @@ export class Sample {
     const ancon = await client.create(
       'walletcore',
       'abc123456789',
-      process.env.ALICE_M,
+      "lend lock kit kiss walnut flower expect text upset nut arrive hub waste stairs climb neither must crowd harvest network wife lizard shiver obtain",
     )
 
-    const address = process.env.ALICE
+    const address = 'ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z'
 
     // Create File message, add creator
     const msg = {
@@ -64,7 +64,7 @@ export class Sample {
       fee: {
         amount: [
           {
-            denom: 'token',
+            denom: 'aphoton',
             amount: '4',
           },
         ],
