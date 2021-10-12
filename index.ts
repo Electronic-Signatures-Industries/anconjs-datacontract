@@ -128,14 +128,16 @@ export class AnconClient {
       sequence,
       chainId,
     })
+    
     const txRawBytes = Uint8Array.from(TxRaw.encode(txRaw).finish())
-    const txBytesHex = ethers.utils.hexlify(txRawBytes)
-    return txBytesHex
+    return ethers.utils.hexlify(txRawBytes)
+    // return ethers.utils.hexlify(txRawBytes)
   }
+
   async create(accountName: string, passphrase: string, mnemonic?: string) {
     let signer = this.signer as DirectSecp256k1HdWallet
     let rpc
-
+    let eth: ethers.Wallet
     if (!this.signer) {
       const resp = await this.wallet.open(accountName, passphrase)
       const acct = (await this.wallet.getAccount(accountName)) as any
@@ -152,7 +154,7 @@ export class AnconClient {
         (k: KeystoreDbModel) => k.walletId === walletId,
       )
       rpc = new ethers.providers.JsonRpcProvider('http://localhost:8545')
-      this.ethersclient = ethers.Wallet.fromMnemonic(keystore.mnemonic)
+      eth = this.ethersclient = ethers.Wallet.fromMnemonic(keystore.mnemonic)
       this.ethersclient.connect(rpc)
       signer = await DirectSecp256k1HdWallet.fromMnemonic(keystore.mnemonic, {
         prefix: 'ethm',
@@ -164,7 +166,6 @@ export class AnconClient {
       prefix: 'ethm',
     })
 
-    const ethInstance = this.ethersclient
     const offlineSig = this.offlineSigner
     this.account = await signer.getAccounts()
     console.log(this.account)
@@ -209,7 +210,7 @@ export class AnconClient {
             chainId: 9000,
           }
           const params = [tx]
-          const res = await rpc.send('ancon_sendSignedTx', params)
+          const res = await rpc.send('ancon_SendSignedTx', params)
 
           return res
         },
@@ -244,14 +245,19 @@ export class AnconClient {
             offlineSig,
           )
 
+          console.log(txsignedhex)
           // Set it to Data in a ethereum tx / SendTxArgs
-          const tx: UnsignedTransaction = {
+          const tx = {
             data: txsignedhex,
             value: 0,
             chainId: 9000,
+            // from: '0xB9F6914A7415F9AD867A9C537471A46DFA852BAE'
           }
-          const params = [tx]
-          const res = await rpc.send('ancon_sendSignedTx', params)
+          
+          // const params = [txsignedhex]
+          const raw = await eth.signTransaction({ ...tx })
+          console.log(txsignedhex)
+          const res = await rpc.send('ancon_sendRawTransaction', [raw])
 
           return res
         },
