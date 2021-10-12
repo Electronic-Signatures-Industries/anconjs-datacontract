@@ -1,6 +1,10 @@
 import {
+  AccountData,
   decodeTxRaw,
   DirectSecp256k1HdWallet,
+  makeAuthInfoBytes,
+  makeSignBytes,
+  makeSignDoc,
   OfflineSigner,
   Registry,
 } from '@cosmjs/proto-signing'
@@ -17,12 +21,14 @@ import {
 import {
   txClient,
   queryClient,
+  registry,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { Subject, Subscription } from 'rxjs'
 import { TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
+import Web3 from 'web3'
+import { makeStdTx } from '@cosmjs/launchpad'
 
 export class AnconClient {
-  registry: Registry
   wallet: Wallet
   tm: Tendermint34Client
   queryService: import('/home/rogelio/Code/xdv/xdv-node-provider/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/rest').Api<
@@ -108,8 +114,27 @@ export class AnconClient {
     return wallet as any
   }
 
+  async sign(
+    accountNumber: any,
+    address: string,
+    chainId: string,
+    sequence,
+    fee: any,
+    encoded,
+    signer,
+  ) {
+    const txRaw = await signer.signDirect(address, [encoded], fee, '', {
+      accountNumber,
+      sequence,
+      chainId,
+    })
+    const txRawBytes = Uint8Array.from(TxRaw.encode(txRaw).finish())
+    const txBytesHex = ethers.utils.hexlify(txRawBytes)
+    return txBytesHex
+  }
   async create(accountName: string, passphrase: string, mnemonic?: string) {
     let signer = this.signer as DirectSecp256k1HdWallet
+    let rpc
 
     if (!this.signer) {
       const resp = await this.wallet.open(accountName, passphrase)
@@ -126,25 +151,24 @@ export class AnconClient {
       const keystore = await acct.keystores.find(
         (k: KeystoreDbModel) => k.walletId === walletId,
       )
+      rpc = new ethers.providers.JsonRpcProvider('http://localhost:8545')
       this.ethersclient = ethers.Wallet.fromMnemonic(keystore.mnemonic)
-      this.ethersclient.connect(
-        new ethers.providers.JsonRpcProvider('http://localhost:8545'),
-      )
-
+      this.ethersclient.connect(rpc)
       signer = await DirectSecp256k1HdWallet.fromMnemonic(keystore.mnemonic, {
         prefix: 'ethm',
       })
     }
 
     this.offlineSigner = await SigningStargateClient.offline(signer, {
+      registry,
       prefix: 'ethm',
-      broadcastPollIntervalMs: 1000,
-      broadcastTimeoutMs: 15 * 1000,
     })
+
     const ethInstance = this.ethersclient
     const offlineSig = this.offlineSigner
     this.account = await signer.getAccounts()
-    const defaultAccount = this.account
+    console.log(this.account)
+    const defaultAccount = this.account[0] as AccountData
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
       addr: this.apiUrl,
@@ -153,33 +177,41 @@ export class AnconClient {
     const msgCli = await txClient(signer, {
       addr: this.rpcUrl,
     })
+    const sign = this.sign
     this.msgService = msgCli
     const ancon = {
       query: queryCli,
       msg: msgCli,
       tendermint: this.tm,
       metadata: {
-        add: async function (
-          msg: MsgMetadata,
-          fee: any,
-        ): Promise<string> {
+        add: async function (msg: MsgMetadata, fee: any): Promise<string> {
           const encoded = ancon.msg.msgMetadata(msg)
 
-          // Sign offline with CosmJS
-          const sig = await offlineSig.sign(defaultAccount, [encoded], fee, '')
-          
+          // curl -X GET "http://localhost:1317/ethermint/evm/v1/cosmos_account/32A21C1BB6E7C20F547E930B53DAC57F42CD25F6" -H  "accept: application/json"
+          const acct = 8
+          const addr = defaultAccount.address
+          const sequence = 0
+
+          const txsignedhex = await sign(
+            acct,
+            addr,
+            '9000',
+            sequence,
+            fee.fee,
+            encoded,
+            offlineSig,
+          )
+
           // Set it to Data in a ethereum tx / SendTxArgs
           const tx: UnsignedTransaction = {
-            data: ethers.utils.hexlify(new TextEncoder().encode(JSON.stringify(sig))),
+            data: txsignedhex,
             value: 0,
             chainId: 9000,
           }
-          // @ts-ignore
-          const rpc = ethInstance as ethers.providers.JsonRpcProvider
           const params = [tx]
           const res = await rpc.send('ancon_sendSignedTx', params)
 
-          return res;
+          return res
         },
 
         get: async function (cid: string, path: string): Promise<any> {
@@ -188,9 +220,40 @@ export class AnconClient {
         },
       },
       file: {
-        add: function (msg: MsgFile, fee: any): Promise<BroadcastTxResponse> {
+        add: async function (
+          msg: MsgFile,
+          fee: any,
+        ): Promise<BroadcastTxResponse> {
           const encoded = ancon.msg.msgFile(msg)
-          return ancon.msg.signAndBroadcast([encoded], fee)
+
+          // curl -X GET "http://localhost:1317/ethermint/evm/v1/cosmos_account/32A21C1BB6E7C20F547E930B53DAC57F42CD25F6" -H  "accept: application/json"
+          const acct = 8
+          const addr = defaultAccount.address
+          const sequence = 0
+          const signers = {
+            pubkey: defaultAccount.pubkey,
+            sequence,
+          }
+          const txsignedhex = await sign(
+            acct,
+            addr,
+            '9000',
+            sequence,
+            fee.fee,
+            encoded,
+            offlineSig,
+          )
+
+          // Set it to Data in a ethereum tx / SendTxArgs
+          const tx: UnsignedTransaction = {
+            data: txsignedhex,
+            value: 0,
+            chainId: 9000,
+          }
+          const params = [tx]
+          const res = await rpc.send('ancon_sendSignedTx', params)
+
+          return res
         },
         get: async function (cid: string, path: string): Promise<any> {
           const resp = await ancon.query.queryResource(cid, { path }, {})

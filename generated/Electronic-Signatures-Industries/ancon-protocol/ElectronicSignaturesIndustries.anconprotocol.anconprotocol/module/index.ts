@@ -119,4 +119,5 @@ const queryClient = async ({ addr: addr }: QueryClientOptions = { addr: "http://
 export {
   txClient,
   queryClient,
+  registry
 };
