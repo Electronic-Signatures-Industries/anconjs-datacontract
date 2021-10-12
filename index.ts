@@ -128,10 +128,8 @@ export class AnconClient {
       sequence,
       chainId,
     })
-    
-    const txRawBytes = Uint8Array.from(TxRaw.encode(txRaw).finish())
-    return ethers.utils.hexlify(txRawBytes)
-    // return ethers.utils.hexlify(txRawBytes)
+    return txRaw
+
   }
 
   async create(accountName: string, passphrase: string, mnemonic?: string) {
@@ -204,13 +202,16 @@ export class AnconClient {
           )
 
           // Set it to Data in a ethereum tx / SendTxArgs
-          const tx: UnsignedTransaction = {
+          const tx = {
             data: txsignedhex,
             value: 0,
             chainId: 9000,
+            // from: '0xB9F6914A7415F9AD867A9C537471A46DFA852BAE'
           }
-          const params = [tx]
-          const res = await rpc.send('ancon_SendSignedTx', params)
+          
+          // const params = [txsignedhex]
+          const raw = await eth.signTransaction({ ...tx })
+          const res = await rpc.send('ancon_sendRawTransaction', [raw])
 
           return res
         },
@@ -235,7 +236,7 @@ export class AnconClient {
             pubkey: defaultAccount.pubkey,
             sequence,
           }
-          const txsignedhex = await sign(
+          const {signed, signature} = await sign(
             acct,
             addr,
             '9000',
@@ -245,10 +246,12 @@ export class AnconClient {
             offlineSig,
           )
 
-          console.log(txsignedhex)
           // Set it to Data in a ethereum tx / SendTxArgs
           const tx = {
-            data: txsignedhex,
+            data: ethers.utils.defaultAbiCoder.encode(["string","string"],[
+              JSON.stringify(signed),
+              JSON.stringify(signature)
+            ]),
             value: 0,
             chainId: 9000,
             // from: '0xB9F6914A7415F9AD867A9C537471A46DFA852BAE'
@@ -256,7 +259,6 @@ export class AnconClient {
           
           // const params = [txsignedhex]
           const raw = await eth.signTransaction({ ...tx })
-          console.log(txsignedhex)
           const res = await rpc.send('ancon_sendRawTransaction', [raw])
 
           return res
