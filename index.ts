@@ -130,43 +130,22 @@ export class AnconClient {
     signer,
     keyringAccount,
   ) {
-    const pubkey = encodePubkey(encodeSecp256k1Pubkey(keyringAccount.pubkey))
-    const txBodyEncodeObject = {
-      typeUrl: '/cosmos.tx.v1beta1.TxBody',
-      value: {
-        messages: [encoded],
-        memo: '',
+    const s = await SigningStargateClient.connectWithSigner(
+      `ws://localhost:26657`,
+      signer,
+      {
+        registry,
+        prefix: 'ethm',
       },
-    }
-    const txBodyBytes = registry.encode(txBodyEncodeObject)
-    console.log(txBodyBytes)
-    const gasLimit = fee.gas
-    const authInfoBytes = makeAuthInfoBytes(
-      [{ pubkey, sequence }],
-      fee.amount,
-      gasLimit,
     )
-    const signDoc = makeSignDoc(
-      txBodyBytes,
-      authInfoBytes,
-      chainId,
-      accountNumber,
-    )
-    const compileSignDoc = makeSignDoc(
-      signDoc.bodyBytes,
-      signDoc.authInfoBytes,
-      signDoc.chainId,
-      accountNumber,
-    )
-    const res = await signer.signDirect(address, compileSignDoc)
 
-    const compileTxRaw = TxRaw.fromPartial({
-      bodyBytes: res.signed.bodyBytes,
-      authInfoBytes: res.signed.authInfoBytes,
-      signatures: [fromBase64(res.signature.signature)],
+    const raw = await s.sign(address, [encoded], fee, '', {
+      accountNumber,
+      sequence,
+      chainId,
     })
 
-    return TxRaw.encode(compileTxRaw).finish()
+    return TxRaw.encode(raw).finish()
   }
 
   async create(accountName: string, passphrase: string, mnemonic?: string) {
@@ -217,9 +196,9 @@ export class AnconClient {
       )
     }
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
-    // const queryCli = await queryClient({
-    //   addr: this.apiUrl,
-    // })
+    const queryCli = await queryClient({
+      addr: this.apiUrl,
+    })
 
     const msgCli = await txClient(signer, {
       addr: this.rpcUrl,
@@ -227,7 +206,7 @@ export class AnconClient {
     const sign = this.sign
     this.msgService = msgCli
     const ancon = {
-      query: null,
+      query: queryCli,
       msg: msgCli,
       tendermint: this.tm,
       registry: registry,
@@ -243,7 +222,7 @@ export class AnconClient {
           const txsignedhex = await sign(
             acct,
             addr,
-            '9000',
+             'anconprotocol_9000-1',
             sequence,
             fee.fee,
             encoded,
@@ -286,10 +265,12 @@ export class AnconClient {
             pubkey: keyringAccount.pubkey,
             sequence,
           }
+
+          console.log(msg, encoded, cosmosAccount)
           const data = await sign(
             acct,
             addr,
-            '9000',
+             'anconprotocol_9000-1',
             sequence,
             fee.fee,
             encoded,
@@ -300,15 +281,19 @@ export class AnconClient {
           const tx: UnsignedTransaction = {
             data,
             value: 0,
+            gasLimit: 2000,
+            gasPrice: 20000,
             chainId: 9000,
-            // from: '0xB9F6914A7415F9AD867A9C537471A46DFA852BAE'
           }
 
           // const params = [txsignedhex]
-          const raw = await eth.signTransaction({ ...tx })
+          const raw = await eth.signTransaction({
+            ...tx,           
+          })
           console.log(raw)
           const res = await rpc.send('ancon_sendRawTransaction', [raw])
 
+          
           return res
         },
         get: async function (cid: string, path: string): Promise<any> {

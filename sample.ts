@@ -43,22 +43,23 @@ export class Sample {
 
     // Subscribe to Tendermint events
     const query = `message.action='File'`
-    // ancon.tendermint.subscribeTx(query).addListener({
-    //   next: async (log: TxEvent) => {
+    ancon.tendermint.subscribeTx(query).addListener({
+      next: async (log: TxEvent) => {
         
-    //     // Decode response
-    //     const res = MsgFileResponse.decode(log.result.data)
 
-    //     // Hack: Protobuf issue
-    //     const cid = res.hash.substring(10)
-        
-        
-    //     // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-    //     const content = await ancon.file.get(cid, '')
+        // Decode response
+        const res = MsgFileResponse.decode(log.result.data)
 
-    //     console.log(content)
-    //   },
-    // })
+        // Hack: Protobuf issue
+        const cid = res.hash.substring(10)
+        
+        
+        // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
+        const content = await ancon.file.get(cid, '')
+
+        console.log(content)
+      },
+    })
 
     // Create File Message request
     // Add Cosmos uatom 
@@ -73,6 +74,8 @@ export class Sample {
         gas: '200000',
       },
     })
+
+    console.log(receipt)
 
   }
 }
