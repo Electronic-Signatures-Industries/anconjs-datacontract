@@ -27,7 +27,7 @@ export class Sample {
       "lend lock kit kiss walnut flower expect text upset nut arrive hub waste stairs climb neither must crowd harvest network wife lizard shiver obtain",
     )
 
-    const address = 'ethm1h8mfzjn5zhu6mpn6n3fhgudydhag22aw4dyenj'
+    const address = 'ethm1x73r96c85nage2y05cpqlzth8ak2qg9p0vqc4d'
 
     // Create File message, add creator
     const msg = {
