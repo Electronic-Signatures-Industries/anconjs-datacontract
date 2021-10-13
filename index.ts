@@ -123,13 +123,15 @@ export class AnconClient {
     encoded,
     signer,
   ) {
-    const txRaw = await signer.signDirect(address, [encoded], fee, '', {
+    const txRaw: TxRaw = await signer.signDirect(address, [encoded], fee, '', {
       accountNumber,
       sequence,
       chainId,
     })
-    return txRaw
 
+
+
+    return  TxRaw.encode(txRaw).finish()
   }
 
   async create(accountName: string, passphrase: string, mnemonic?: string) {
@@ -165,9 +167,9 @@ export class AnconClient {
     })
 
     const offlineSig = this.offlineSigner
-    this.account = await signer.getAccounts()
+    this.account = await offlineSig.getAccount('ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z')
     console.log(this.account)
-    const defaultAccount = this.account[0] as AccountData
+    const defaultAccount = this.account
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
     const queryCli = await queryClient({
       addr: this.apiUrl,
@@ -236,7 +238,7 @@ export class AnconClient {
             pubkey: defaultAccount.pubkey,
             sequence,
           }
-          const {signed, signature} = await sign(
+          const data = await sign(
             acct,
             addr,
             '9000',
@@ -246,19 +248,16 @@ export class AnconClient {
             offlineSig,
           )
 
-          // Set it to Data in a ethereum tx / SendTxArgs
-          const tx = {
-            data: ethers.utils.defaultAbiCoder.encode(["string","string"],[
-              JSON.stringify(signed),
-              JSON.stringify(signature)
-            ]),
+          const tx: UnsignedTransaction = {
+            data,
             value: 0,
             chainId: 9000,
             // from: '0xB9F6914A7415F9AD867A9C537471A46DFA852BAE'
           }
           
           // const params = [txsignedhex]
-          const raw = await eth.signTransaction({ ...tx })
+          const raw = await eth.signTransaction({ ...tx})
+          console.log(raw)
           const res = await rpc.send('ancon_sendRawTransaction', [raw])
 
           return res
