@@ -15,6 +15,8 @@ export class Sample {
       false,
       'http://localhost:1317',
       'ws://localhost:26657',
+      'http://localhost:8545',
+      '',
       // If Kelpr Wallet, add signer here
     )
 
@@ -25,7 +27,7 @@ export class Sample {
       "lend lock kit kiss walnut flower expect text upset nut arrive hub waste stairs climb neither must crowd harvest network wife lizard shiver obtain",
     )
 
-    const address = 'ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z'
+    const address = 'ethm1h8mfzjn5zhu6mpn6n3fhgudydhag22aw4dyenj'
 
     // Create File message, add creator
     const msg = {
@@ -41,22 +43,22 @@ export class Sample {
 
     // Subscribe to Tendermint events
     const query = `message.action='File'`
-    ancon.tendermint.subscribeTx(query).addListener({
-      next: async (log: TxEvent) => {
+    // ancon.tendermint.subscribeTx(query).addListener({
+    //   next: async (log: TxEvent) => {
         
-        // Decode response
-        const res = MsgFileResponse.decode(log.result.data)
+    //     // Decode response
+    //     const res = MsgFileResponse.decode(log.result.data)
 
-        // Hack: Protobuf issue
-        const cid = res.hash.substring(10)
+    //     // Hack: Protobuf issue
+    //     const cid = res.hash.substring(10)
         
         
-        // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-        const content = await ancon.file.get(cid, '')
+    //     // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
+    //     const content = await ancon.file.get(cid, '')
 
-        console.log(content)
-      },
-    })
+    //     console.log(content)
+    //   },
+    // })
 
     // Create File Message request
     // Add Cosmos uatom 
