@@ -1,7 +1,10 @@
 require('dotenv').config()
+import { ethers, UnsignedTransaction } from 'ethers'
 import { TxEvent } from '@cosmjs/tendermint-rpc/build/tendermint34'
+import Web3 from 'web3'
 import { AnconClient } from '.'
-import { MsgFileResponse } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
+import { MsgFileResponse, MsgMetadata } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
+import { buildQuery } from '@cosmjs/tendermint-rpc/build/tendermint34/requests'
 
 global['fetch'] = require('node-fetch')
 export class Sample {
@@ -30,40 +33,41 @@ export class Sample {
     const address = 'ethm1x73r96c85nage2y05cpqlzth8ak2qg9p0vqc4d'
 
     // Create File message, add creator
-    const msg = {
+    const msg = MsgMetadata.fromPartial({
       creator: address,
-      contentType: 'application/json',
-      content: 'hello',
-      mode: '',
-      path: 'index.html',
-      time: new Date().getTime().toString(10),
+      name: 'tendermint',
+      image: 'http://localhost:1317',
+      sources:"[\"QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D\"]",
+      links: "[\"QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D\"]",
+      owner: "did:key:z8mWaJHXieAVxxLagBpdaNWFEBKVWmMiE",
+      description: "tendermint",
       did: '',
       from: '',
-    }
-
-    // Subscribe to Tendermint events
-    const query = `message.action='File'`
-    ancon.tendermint.subscribeTx(query).addListener({
-      next: async (log: TxEvent) => {
-        
-
-        // Decode response
-        const res = MsgFileResponse.decode(log.result.data)
-
-        // Hack: Protobuf issue
-        const cid = res.hash.substring(10)
-        
-        
-        // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-        const content = await ancon.file.get(cid, '')
-
-        console.log(content)
-      },
     })
 
-    // Create File Message request
+    // // Subscribe to Tendermint events
+    // const query = `message.action='Metadata'`
+    // ancon.tendermint.subscribeTx(query).addListener({
+    //   next: async (log: TxEvent) => {
+        
+
+    //     // Decode response
+    //     const res = MsgMetadataResponse.decode(log.result.data)
+
+    //     // Hack: Protobuf issue
+    //     const cid = res.hash.substring(10)
+        
+        
+    //     // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
+    //     const content = await ancon.metadata.get(cid, '')
+
+    //     console.log(content)
+    //   },
+    // })
+
+    // Create Metadata Message request
     // Add Cosmos uatom 
-    const receipt = await ancon.file.add(msg, {
+    const receipt = await ancon.metadata.add(msg, {
       fee: {
         amount: [
           {
@@ -74,9 +78,18 @@ export class Sample {
         gas: '200000',
       },
     })
-
     console.log(receipt)
+    buildQuery({
+      tags:[{
+        
+      }]
+    })
+    const o = await ancon.tendermint.tx({
+      hash: `0x${receipt.txhash}`,
+      prove: true
+    })
 
+    console.log(o)
   }
 }
 
