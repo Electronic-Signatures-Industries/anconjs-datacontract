@@ -266,7 +266,7 @@ export class AnconClient {
             sequence,
           }
 
-          console.log(msg, encoded, cosmosAccount)
+          
           const data = await sign(
             acct,
             addr,
@@ -290,7 +290,7 @@ export class AnconClient {
           const raw = await eth.signTransaction({
             ...tx,           
           })
-          console.log(raw)
+          
           const res = await rpc.send('ancon_sendRawTransaction', [raw])
 
           
