@@ -6,6 +6,7 @@ import { AnconClient } from '.'
 import {
   MsgFileResponse,
   MsgMetadata,
+  MsgMetadataResponse,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 import { buildQuery } from '@cosmjs/tendermint-rpc/build/tendermint34/requests'
 
@@ -39,8 +40,8 @@ export class Sample {
       creator: address,
       name: 'tendermint',
       image: 'http://localhost:1317',
-      sources: '["QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D"]',
-      links: '["QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D"]',
+      sources: JSON.stringify(["bafyreia66w67tvsr5yiqagmxnklg3xdlxwroj2ho5sdzj45iydatgbbxci"]),
+      links: JSON.stringify(["bafyreia66w67tvsr5yiqagmxnklg3xdlxwroj2ho5sdzj45iydatgbbxci"]),
       owner: 'did:key:z8mWaJHXieAVxxLagBpdaNWFEBKVWmMiE',
       description: 'tendermint',
       did: '',
@@ -48,22 +49,23 @@ export class Sample {
     })
 
     // // Subscribe to Tendermint events
-    // const query = `message.action='Metadata'`
-    // ancon.tendermint.subscribeTx(query).addListener({
-    //   next: async (log: TxEvent) => {
+    const query = `message.action='Metadata'`
+    ancon.tendermint.subscribeTx(query).addListener({
+      next: async (log: TxEvent) => {
 
-    //     // Decode response
-    //     const res = MsgMetadataResponse.decode(log.result.data)
+        // Decode response
+        const res = MsgMetadataResponse.decode(log.result.data)
+        console.log(res)
+        // Hack: Protobuf issue
+        const cid = res.cid.split(';')[1]
+        console.log(cid)
 
-    //     // Hack: Protobuf issue
-    //     const cid = res.hash.substring(10)
+        // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
+        const content = await ancon.metadata.get(cid, '/')
 
-    //     // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-    //     const content = await ancon.metadata.get(cid, '')
-
-    //     console.log(content)
-    //   },
-    // })
+        console.log(content)
+      },
+    })
 
     // Create Metadata Message request
     // Add Cosmos uatom
@@ -78,19 +80,14 @@ export class Sample {
         gas: '200000',
       },
     })
-    console.log(receipt)
+    // console.log(receipt)
+    // ancon.getTxProof(receipt.txhash)
+    setTimeout(async () => {
+      const resp = await fetch(`http://localhost:26657/tx?hash=0x${receipt.txhash}&prove=true`)      
+      const o = await resp.json()
 
-
-    setTimeout( async () => {
-
-    
-    const o = await ancon.tendermint.tx({
-      hash: Uint8Array.from(Web3.utils.hexToBytes(`0x${receipt.txhash}`)),
-      prove: true,
-    })
-
-    console.log(o)
-  }, 5000)
+      console.log(o.result.proof)      
+    }, 5000)
   }
 }
 

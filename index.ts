@@ -246,7 +246,7 @@ export class AnconClient {
         },
 
         get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryResource(cid, { path }, {})
+          const resp = await ancon.query.queryReadWithPath(cid, path, {})
           return resp.data
         },
       },
