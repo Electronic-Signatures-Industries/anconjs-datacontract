@@ -1,5 +1,5 @@
 require('dotenv').config()
-import { ics23 } from "@confio/ics23";
+import { ics23 } from '@confio/ics23'
 import { ethers, UnsignedTransaction } from 'ethers'
 import { TxEvent } from '@cosmjs/tendermint-rpc/build/tendermint34'
 
@@ -9,7 +9,7 @@ import {
   MsgMetadata,
   MsgMetadataResponse,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
-import Web3 from "web3";
+import Web3 from 'web3'
 
 global['fetch'] = require('node-fetch')
 export class Sample {
@@ -57,7 +57,6 @@ export class Sample {
     const query = `message.action='Metadata'`
     ancon.tendermint.subscribeTx(query).addListener({
       next: async (log: TxEvent) => {
-
         // Decode response
         const res = MsgMetadataResponse.decode(log.result.data)
         console.log(res)
@@ -103,8 +102,48 @@ export class Sample {
       const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp))
 
 
-      
-    },5000)
+      const abiInnerOps = [];
+      // InnerOp[]
+      expobj.path.forEach(inner => {
+        const abiLeadOp = ethers.utils.defaultAbiCoder.encode(
+          ['tuple(HashOp,bytes,bytes)'],
+          [
+            inner.hash,
+            inner.prefix,
+            inner.suffix
+          ],
+        )
+        abiInnerOps.push(abiLeadOp)
+      })
+
+      // LeafOp
+      const abiLeadOp = ethers.utils.defaultAbiCoder.encode(
+        ['tuple(HashOp,HashOp,HashOp,LengthOp,bytes)'],
+        [
+          expobj.leaf.hash,
+          expobj.leaf.prehashKey,
+          expobj.leaf.prehashValue,
+          expobj.leaf.length,
+          expobj.leaf.prefix,
+        ],
+      )
+
+      const abiExp = ethers.utils.defaultAbiCoder.encode(
+        ['tuple(bool, bytes,bytes,LeafOp,InnerOp[])'],
+        [false, expobj.key, expobj.value, abiLeadOp, abiInnerOps],
+      )
+
+      // Send to bridge verifier
+      // 1. Create / Instantiate ancon metadata own bridge verifier
+      // 2. abiExp === ExistenceProof, root, path, value bytes
+      // 3. Add missing boolean valid property
+      ancon.changeOwnerWithProof(
+        abiExp,
+        root,
+        path,
+        value,
+      )
+    }, 5000)
   }
 }
 

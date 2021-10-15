@@ -207,6 +207,7 @@ export class AnconClient {
     this.msgService = msgCli
     const ancon = {
       rpc,
+      changeOwnerWithProof,
       query: queryCli,
       msg: msgCli,
       tendermint: this.tm,
