@@ -1,14 +1,15 @@
 require('dotenv').config()
+import { ics23 } from "@confio/ics23";
 import { ethers, UnsignedTransaction } from 'ethers'
 import { TxEvent } from '@cosmjs/tendermint-rpc/build/tendermint34'
-import Web3 from 'web3'
+
 import { AnconClient } from '.'
 import {
   MsgFileResponse,
   MsgMetadata,
   MsgMetadataResponse,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
-import { buildQuery } from '@cosmjs/tendermint-rpc/build/tendermint34/requests'
+import Web3 from "web3";
 
 global['fetch'] = require('node-fetch')
 export class Sample {
@@ -90,11 +91,19 @@ export class Sample {
     setTimeout(async () => {
       //const resp = await fetch(`http://localhost:26657/tx?hash=0x${receipt.txhash}&prove=true`)
       //  const o = await resp.json()
-
       const o = await ancon.rpc.send('ancon_getTransactionByHash', [
         `${receipt.txhash}`,
       ])
-      console.log(o, o.logs[0].events[0].attributes)
+      const root = o.logs[0].events[0].attributes[0]
+      const path = o.logs[0].events[0].attributes[1]
+      const value = o.logs[0].events[0].attributes[2]
+      const proof = o.logs[0].events[0].attributes[3]
+
+      const exp = Web3.utils.hexToBytes(proof)
+      const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp))
+
+
+      
     },5000)
   }
 }

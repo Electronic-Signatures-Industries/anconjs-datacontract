@@ -8,6 +8,7 @@
   "author": "Industrias de Firmas Electronicas",
   "license": "MIT and Apache License",
   "dependencies": {
+    "@confio/ics23": "^0.6.5",
     "@cosmjs/launchpad": "^0.26.1",
     "@cosmjs/proto-signing": "^0.26.1",
     "@cosmjs/stargate": "^0.26.1",
