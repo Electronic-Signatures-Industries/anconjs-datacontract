@@ -206,6 +206,7 @@ export class AnconClient {
     const sign = this.sign
     this.msgService = msgCli
     const ancon = {
+      rpc,
       query: queryCli,
       msg: msgCli,
       tendermint: this.tm,
