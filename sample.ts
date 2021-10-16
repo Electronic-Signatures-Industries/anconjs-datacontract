@@ -10,6 +10,7 @@ import {
   MsgMetadataResponse,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 import Web3 from 'web3'
+import Web3 from 'web3'
 
 global['fetch'] = require('node-fetch')
 export class Sample {
@@ -88,15 +89,27 @@ export class Sample {
     console.log(receipt)
     // ancon.getTxProof(receipt.txhash)
     setTimeout(async () => {
-      //const resp = await fetch(`http://localhost:26657/tx?hash=0x${receipt.txhash}&prove=true`)
-      //  const o = await resp.json()
-      const o = await ancon.rpc.send('ancon_getTransactionByHash', [
-        `${receipt.txhash}`,
+      const resp = await fetch(`http://localhost:26657/tx?hash=0x${receipt.txhash}&prove=true`)
+        const o = await resp.json()
+      console.log(o, receipt)
+
+      const proofs = await ancon.rpc.send('ancon_getProofs', [
+        parseInt(o.result.height, 10),
       ])
-      const root = o.logs[0].events[0].attributes[0]
-      const path = o.logs[0].events[0].attributes[1]
-      const value = o.logs[0].events[0].attributes[2]
-      const proof = o.logs[0].events[0].attributes[3]
+
+      const key = proofs[0].events[0].attributes[0].value
+      const value = proofs[0].events[0].attributes[1].value
+      const leaf = proofs[0].events[0].attributes[2].value
+      const proof = proofs[0].events[0].attributes[3].value
+      const root = proofs[0].events[0].attributes[4].value
+
+      console.log(key, value, Web3.utils.hexToString(proof), root)
+      //  app_hash=AD836E31D7336A76EF897A0C259D5026E7A78602D4FDB1CA31493456863C19FB
+      const res = await ancon.rpc.send('ancon_verifyMembership', [
+        root, key, value, proof
+      ])
+
+      console.log(key, res)
 
       const exp = Web3.utils.hexToBytes(proof)
       const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp))
@@ -137,12 +150,12 @@ export class Sample {
       // 1. Create / Instantiate ancon metadata own bridge verifier
       // 2. abiExp === ExistenceProof, root, path, value bytes
       // 3. Add missing boolean valid property
-      ancon.changeOwnerWithProof(
-        abiExp,
-        root,
-        path,
-        value,
-      )
+      // ancon.changeOwnerWithProof(
+      //   abiExp,
+      //   root,
+      //   path,
+      //   value,
+      // )
     }, 5000)
   }
 }
