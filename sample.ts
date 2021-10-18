@@ -36,7 +36,7 @@ export class Sample {
     )
 
     const address = 'ethm1x73r96c85nage2y05cpqlzth8ak2qg9p0vqc4d'
-
+    let cid
     // Create File message, add creator
     const msg = MsgMetadata.fromPartial({
       creator: address,
@@ -62,7 +62,7 @@ export class Sample {
         const res = MsgMetadataResponse.decode(log.result.data)
         console.log(res)
         // Hack: Protobuf issue
-        const cid = res.cid.split(';')[1]
+        cid = res.cid.split(';')[1]
         console.log(cid)
 
         // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
@@ -89,46 +89,45 @@ export class Sample {
     console.log(receipt)
     // ancon.getTxProof(receipt.txhash)
     setTimeout(async () => {
-      const resp = await fetch(`http://localhost:26657/tx?hash=0x${receipt.txhash}&prove=true`)
-        const o = await resp.json()
+      let resp = await fetch(
+        `http://localhost:26657/tx?hash=0x${receipt.txhash}&prove=true`,
+      )
+      const o = await resp.json()
       console.log(o, receipt)
+      
+      let key = 'anconbafyreiapkje327erp4u736b7juu27jd3isuizupma775cpw6p4yvg7plyi'
+      
 
       const proofs = await ancon.rpc.send('ancon_getProofs', [
-        parseInt(o.result.height, 10),
+      7,// parseInt(o.result.height, 10),
+        key,
       ])
 
-      const key = proofs[0].events[0].attributes[0].value
-      const value = proofs[0].events[0].attributes[1].value
-      const leaf = proofs[0].events[0].attributes[2].value
-      const proof = proofs[0].events[0].attributes[3].value
-      const root = proofs[0].events[0].attributes[4].value
-      const commmitment = proofs[0].events[0].attributes[5].value
+      const root = proofs[0].events[0].attributes[0].value
+      const commmitment = proofs[0].events[0].attributes[1].value
+      const value = proofs[0].events[0].attributes[2].value
+      key = proofs[0].events[0].attributes[3].value
 
-      console.log(root, key, value, proof, commmitment)
+      console.log(root, key, value, commmitment)
       //  app_hash=AD836E31D7336A76EF897A0C259D5026E7A78602D4FDB1CA31493456863C19FB
       const res = await ancon.rpc.send('ancon_verifyMembership', [
-        '0x7d6330f43094805332c9bd13265c9cf7307c441e8f9f6d6ffa80ead843050357',
-         '0x2f616e636f6e70726f746f636f6c2f62616679726569666372723576333462367977693279706d626f786b6e7970747a7a757a776e6964336c787472727134786e79756d68667a7975752f783a46453343323139463642343034454130433946343335394534313241354331363841393631354534353234423544413739433038313338433931314142383041',
-          '0xFE3C219F6B404EA0C9F4359E412A5C168A9615E4524B5DA79C08138C911AB80A', 
-        '0x7b226578697374223a7b226b6579223a224c3246755932397563484a766447396a62327776596d466d65584a6c61575a6a636e4931646a4d30596a5a3564326b7965584274596d39346132353563485236656e5636643235705a444e7365485279636e4530654735356457316f5a6e7035645855766544704752544e444d6a4535526a5a434e44413052554577517a6c474e444d314f5555304d544a424e554d784e6a68424f5459784e5555304e544930516a564551546335517a41344d544d34517a6b784d5546434f444242222c2276616c7565223a222f6a77686e3274415471444a3944576551537063466f7157466552535331326e6e4167546a4a456175416f3d222c226c656166223a7b2268617368223a22534841323536222c22707265686173685f6b6579223a224e4f5f48415348222c22707265686173685f76616c7565223a22534841323536222c226c656e677468223a225641525f50524f544f222c22707265666978223a2241413d3d227d2c2270617468223a5b5d7d7d'
+        root,
+ key,
+        value,
+        commmitment,
       ])
 
       console.log(root, res[0].events[0].attributes[0].value)
 
-      const exp = Web3.utils.hexToBytes(proof)
+      const exp = ''
       const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp))
 
-
-      const abiInnerOps = [];
+      const abiInnerOps = []
       // InnerOp[]
-      expobj.path.forEach(inner => {
+      expobj.path.forEach((inner) => {
         const abiLeadOp = ethers.utils.defaultAbiCoder.encode(
           ['tuple(HashOp,bytes,bytes)'],
-          [
-            inner.hash,
-            inner.prefix,
-            inner.suffix
-          ],
+          [inner.hash, inner.prefix, inner.suffix],
         )
         abiInnerOps.push(abiLeadOp)
       })
