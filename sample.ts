@@ -121,6 +121,7 @@ export class Sample {
 
       const exp = "";
       const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp));
+      console.log("Existence Proof Object JSON", expobj.toJSON);
 
       const abiInnerOps = [];
       // InnerOp[]
