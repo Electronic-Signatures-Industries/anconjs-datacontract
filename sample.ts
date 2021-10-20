@@ -95,33 +95,31 @@ export class Sample {
       console.log(o, receipt);
 
       let key =
-        "anconbafyreiapkje327erp4u736b7juu27jd3isuizupma775cpw6p4yvg7plyi";
+        "bafyreiapkje327erp4u736b7juu27jd3isuizupma775cpw6p4yvg7plyi";
 
       const proofs = await ancon.rpc.send("ancon_getProofs", [
-        9, // parseInt(o.result.height, 10),
         key,
       ]);
 
       const root = proofs[0].events[0].attributes[0].value;
-      const commmitment = proofs[0].events[0].attributes[1].value;
+      const exp = proofs[0].events[0].attributes[1].value;
       const value = proofs[0].events[0].attributes[2].value;
-      key = Web3.utils.toHex(key);
       //proofs[0].events[0].attributes[3].value
 
-      console.log(root, key, value, commmitment);
+      console.log(root, key, value);
       //  app_hash=AD836E31D7336A76EF897A0C259D5026E7A78602D4FDB1CA31493456863C19FB
-      const res = await ancon.rpc.send("ancon_verifyMembership", [
-        root,
-        key,
-        value,
-        commmitment,
-      ]);
+      // const res = await ancon.rpc.send("ancon_verifyMembership", [
+      //   root,
+      //   key,
+      //   value,
+      //   commmitment,
+      // ]);
 
-      console.log(root, res[0].events[0].attributes[0].value);
+      // console.log(root, res[0].events[0].attributes[0].value);
 
-      const exp = "";
       const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp));
 
+      console.log(expobj.toJSON())
       const abiInnerOps = [];
       // InnerOp[]
       expobj.path.forEach((inner) => {
@@ -161,6 +159,7 @@ export class Sample {
       // )
     }, 5000);
   }
+}
 
 
 (async function bootstrap() {
