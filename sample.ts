@@ -85,19 +85,15 @@ export class Sample {
         console.log(content.data)
 
         let key = cid
+        const path = "";
+        const requestProof = await fetch(`http://localhost:1317/ancon/proof/${key}${path}`)
+        const proof = await requestProof.json()
+        
 
-        const proofs = await ancon.rpc.send('ancon_getProofs', [key])
-
-        const root = proofs[0].events[0].attributes[0].value
-        const exp = proofs[0].events[0].attributes[1].value
-        const value = proofs[0].events[0].attributes[2].value
-        //proofs[0].events[0].attributes[3].value
-
-        console.log(root, key, value)
-        const expobj = ics23.ExistenceProof.decode(ethers.utils.arrayify(exp))
-        console.log('Existence Proof Object JSON', expobj.toJSON)
-
-        console.log(expobj.toJSON())
+        const root = proof.root
+        const exp = proof.proof
+        
+        console.log(root, exp)
       },
     })
     const chainId = 'anconprotocol_9000-1'
