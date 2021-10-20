@@ -1,5 +1,5 @@
 import { StdFee } from "@cosmjs/launchpad";
-import { Registry, OfflineSigner, EncodeObject } from "@cosmjs/proto-signing";
+import { OfflineSigner, EncodeObject } from "@cosmjs/proto-signing";
 import { Api } from "./rest";
 import { MsgInitiateSwap } from "./types/anconprotocol/tx";
 import { MsgUpdateDid } from "./types/anconprotocol/tx";
@@ -25,7 +25,6 @@ import { MsgRegisterRelay } from "./types/anconprotocol/tx";
 import { MsgChangeOwner } from "./types/anconprotocol/tx";
 import { MsgIssueDenom } from "./types/anconprotocol/tx";
 export declare const MissingWalletError: Error;
-declare const registry: Registry;
 interface TxClientOptions {
     addr: string;
 }
@@ -63,4 +62,4 @@ interface QueryClientOptions {
     addr: string;
 }
 declare const queryClient: ({ addr: addr }?: QueryClientOptions) => Promise<Api<unknown>>;
-export { txClient, queryClient, registry };
+export { txClient, queryClient, };

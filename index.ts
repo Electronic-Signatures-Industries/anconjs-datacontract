@@ -15,16 +15,18 @@ import { KeystoreDbModel, Wallet } from 'xdv-universal-wallet-core'
 import { Tendermint34Client } from '@cosmjs/tendermint-rpc'
 import { BroadcastTxResponse, SigningStargateClient } from '@cosmjs/stargate'
 import {
+  MsgClientImpl,
   MsgFile,
   MsgFileResponse,
   MsgMetadata,
   MsgMetadataResponse,
-} from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
+} from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module/types/anconprotocol/tx'
 import {
   txClient,
   queryClient,
   registry,
-} from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
+} from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
+
 import { Subject, Subscription } from 'rxjs'
 import { TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 import Web3 from 'web3'
@@ -42,6 +44,10 @@ export class AnconClient {
   account: any
   offlineSigner: SigningStargateClient
   ethersclient: ethers.Wallet
+  connectedSigner: SigningStargateClient
+  rpc: ethers.providers.JsonRpcProvider
+  queryClient: any
+  registry: Registry
   /**
    * Register Msg imports
    */
@@ -127,19 +133,9 @@ export class AnconClient {
     sequence,
     fee: any,
     encoded,
-    signer,
-    keyringAccount,
   ) {
-    const s = await SigningStargateClient.connectWithSigner(
-      `ws://localhost:26657`,
-      signer,
-      {
-        registry,
-        prefix: 'ethm',
-      },
-    )
-
-    const raw = await s.sign(address, [encoded], fee, '', {
+    console.log(address, fee, accountNumber, sequence,chainId)
+    const raw = await this.connectedSigner.sign(address, [encoded], fee, '', {
       accountNumber,
       sequence,
       chainId,
@@ -148,10 +144,50 @@ export class AnconClient {
     return TxRaw.encode(raw).finish()
   }
 
+  async signAndBroadcast(
+    chainId: string,
+    evmChainId: number,
+    methodName: string,
+    msg: any,
+    fee: any,
+    defaultAccount: string,
+  ) {
+    const accounts = await this.signer.getAccounts()
+
+    //const keyringAccount = { ...accounts[defaultAccountIndex] }
+    const cosmosAccount = await this.getEthAccountInfo(defaultAccount)
+
+    const encoded = this.msgService[methodName](msg)
+
+    // curl -X GET "http://localhost:1317/ethermint/evm/v1/cosmos_account/32A21C1BB6E7C20F547E930B53DAC57F42CD25F6" -H  "accept: application/json"
+    const acct = cosmosAccount.account_number
+    const addr = cosmosAccount.address
+    const sequence = cosmosAccount.sequence
+
+    const txsignedhex = await this.sign(
+      acct,
+      addr,
+      chainId,
+      sequence,
+      fee,
+      encoded,
+    )
+
+    // Set it to Data in a ethereum tx / SendTxArgs
+    const tx = {
+      data: txsignedhex,
+      value: 0,
+      chainId: evmChainId,
+    }
+
+    const raw = await this.ethersclient.signTransaction({ ...tx })
+    const res = await this.rpc.send('ancon_sendRawTransaction', [raw])
+
+    return res
+  }
+
   async create(accountName: string, passphrase: string, mnemonic?: string) {
     let signer = this.signer as DirectSecp256k1HdWallet
-    let rpc
-    let eth: ethers.Wallet
     if (!this.signer) {
       const resp = await this.wallet.open(accountName, passphrase)
       const acct = (await this.wallet.getAccount(accountName)) as any
@@ -167,145 +203,40 @@ export class AnconClient {
       const keystore = await acct.keystores.find(
         (k: KeystoreDbModel) => k.walletId === walletId,
       )
-      rpc = new ethers.providers.JsonRpcProvider(this.ethereumUrl)
-      eth = this.ethersclient = ethers.Wallet.fromMnemonic(
+      this.rpc = new ethers.providers.JsonRpcProvider(this.ethereumUrl)
+      this.ethersclient = ethers.Wallet.fromMnemonic(
         keystore.mnemonic,
         `m/44'/60'/0'/0`,
       )
-      this.ethersclient.connect(rpc)
-      signer = await DirectSecp256k1HdWallet.fromMnemonic(keystore.mnemonic, {
-        prefix: 'ethm',
-        hdPaths: [stringToPath(`m/44'/60'/0'/0`)],
-      })
-    }
-
-    const accounts = await signer.getAccounts()
-
-    console.log(accounts)
-    const keyringAccount = { ...accounts[0] }
-    // keyringAccount.address = "ethm1x73r96c85nage2y05cpqlzth8ak2qg9p0vqc4d";
-    const cosmosAccount = await this.getEthAccountInfo(
-      '0x37A232EB07A4FA8CA88FA6020F89773F6CA020A1',
-    )
-    if (keyringAccount.address !== cosmosAccount.address) {
-      throw new Error(
-        'keyring: ' +
-          keyringAccount.address +
-          ' cosmos: ' +
-          cosmosAccount.address,
+      this.ethersclient.connect(this.rpc)
+      this.signer = signer = await DirectSecp256k1HdWallet.fromMnemonic(
+        keystore.mnemonic,
+        {
+          prefix: 'ethm',
+          hdPaths: [stringToPath(`m/44'/60'/0'/0`)],
+        },
       )
     }
+
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
-    const queryCli = await queryClient({
+    this.queryClient = await queryClient({
       addr: this.apiUrl,
     })
-
+    this.connectedSigner = await SigningStargateClient.connectWithSigner(
+      `ws://localhost:26657`,
+      signer,
+      {
+        registry,
+        prefix: 'ethm',
+      },
+    )
+    this.registry = registry
     const msgCli = await txClient(signer, {
       addr: this.rpcUrl,
     })
-    const sign = this.sign
     this.msgService = msgCli
-    const ancon = {
-      rpc,
-      changeOwnerWithProof:null,
-      query: queryCli,
-      msg: msgCli,
-      tendermint: this.tm,
-      registry: registry,
-      metadata: {
-        add: async function (msg: MsgMetadata, fee: any): Promise<string> {
-          const encoded = ancon.msg.msgMetadata(msg)
 
-          // curl -X GET "http://localhost:1317/ethermint/evm/v1/cosmos_account/32A21C1BB6E7C20F547E930B53DAC57F42CD25F6" -H  "accept: application/json"
-          const acct = cosmosAccount.account_number
-          const addr = cosmosAccount.address
-          const sequence = cosmosAccount.sequence
-
-          const txsignedhex = await sign(
-            acct,
-            addr,
-             'anconprotocol_9000-1',
-            sequence,
-            fee.fee,
-            encoded,
-            signer,
-            keyringAccount,
-          )
-
-          // Set it to Data in a ethereum tx / SendTxArgs
-          const tx = {
-            data: txsignedhex,
-            value: 0,
-            chainId: 9000,
-            // from: '0xB9F6914A7415F9AD867A9C537471A46DFA852BAE'
-          }
-
-          // const params = [txsignedhex]
-          const raw = await eth.signTransaction({ ...tx })
-          const res = await rpc.send('ancon_sendRawTransaction', [raw])
-
-          return res
-        },
-
-        get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryReadWithPath(cid, path, {})
-          return resp.data
-        },
-      },
-      file: {
-        add: async function (
-          msg: MsgFile,
-          fee: any,
-        ): Promise<BroadcastTxResponse> {
-          const encoded = ancon.msg.msgFile(msg)
-
-          // curl -X GET "http://localhost:1317/ethermint/evm/v1/cosmos_account/32A21C1BB6E7C20F547E930B53DAC57F42CD25F6" -H  "accept: application/json"
-          const acct = cosmosAccount.account_number
-          const addr = cosmosAccount.address
-          const sequence = cosmosAccount.sequence
-          const signers = {
-            pubkey: keyringAccount.pubkey,
-            sequence,
-          }
-
-          
-          const data = await sign(
-            acct,
-            addr,
-             'anconprotocol_9000-1',
-            sequence,
-            fee.fee,
-            encoded,
-            signer,
-            keyringAccount,
-          )
-
-          const tx: UnsignedTransaction = {
-            data,
-            value: 0,
-            gasLimit: 2000,
-            gasPrice: 20000,
-            chainId: 9000,
-          }
-
-          // const params = [txsignedhex]
-          const raw = await eth.signTransaction({
-            ...tx,           
-          })
-          
-          const res = await rpc.send('ancon_sendRawTransaction', [raw])
-
-          
-          return res
-        },
-        get: async function (cid: string, path: string): Promise<any> {
-          const resp = await ancon.query.queryResource(cid, { path }, {})
-          return resp.data
-        },
-      },
-    }
-
-    return ancon
+    return this
   }
 
   /**
