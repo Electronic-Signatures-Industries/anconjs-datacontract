@@ -51,6 +51,19 @@ export class Sample {
       from: '',
     })
 
+    let msgSendMeta = MsgSendMetadataOwnership.fromPartial({
+      Creator: 'ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z',
+      PortId: 'cross-metadata-ownership',
+      ChannelId: 'channel-0',
+      Data: {
+        Creator: 'ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z',
+        TokenAddress: '0xFA24605D4023b0bf847034Da72D25e1b8daC0E34',
+        TokenId: '3',
+        DidRecipient: 'ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z',
+        ToMetadata: 'ethm1x23pcxakulpq74r7jv948kk90apv6f0k7s943z',
+      },
+    })
+
     // // Subscribe to Tendermint events
     let query = `message.action='Metadata'`
     ancon.tm.subscribeTx(query).addListener({
@@ -85,14 +98,15 @@ export class Sample {
         console.log(content.data)
 
         let key = cid
-        const path = "";
-        const requestProof = await fetch(`http://localhost:1317/ancon/proof/${key}${path}`)
+        const path = ''
+        const requestProof = await fetch(
+          `http://localhost:1317/ancon/proof/${key}${path}`,
+        )
         const proof = await requestProof.json()
-        
 
         const root = proof.root
         const exp = proof.proof
-        
+
         console.log(root, exp)
       },
     })
@@ -100,13 +114,13 @@ export class Sample {
     const evmChainId = 9000
 
     const fee = {
-        amount: [
-          {
-            denom: 'aphoton',
-            amount: '4',
-          },
-        ],
-        gas: '200000',
+      amount: [
+        {
+          denom: 'aphoton',
+          amount: '4',
+        },
+      ],
+      gas: '200000',
     }
     // Create Metadata Message request
     // Add Cosmos uatom
@@ -144,7 +158,7 @@ export class Sample {
         evmChainId,
         'msgUpdateMetadataOwnership',
         msgupd,
-        fee, 
+        fee,
         '0x37A232EB07A4FA8CA88FA6020F89773F6CA020A1',
       )
     }, 5000)
