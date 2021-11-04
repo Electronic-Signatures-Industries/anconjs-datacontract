@@ -36,7 +36,7 @@ export class AnconWeb3Provider extends CosmJSWeb3Provider {
 }
 
 const accounts = await window.ethereum.enable();
-this.anconWeb3client = new AnconWeb3Providere(
+this.anconWeb3client = new AnconWeb3Provider(
   'https://ancon.did.pa/evm',
   'ancon',
   'anconprotocol_9000-1',
