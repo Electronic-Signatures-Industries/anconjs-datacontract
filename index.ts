@@ -80,12 +80,11 @@ export class CosmJSWeb3Provider {
 
   /**
    * Sign and broadcast dual chain (EVM / Cosmos), used only for Cosmos Msgs
-   * @param methodName Msg name
    * @param msg Message to encode
    * @param fee Fee   
    * @returns
    */
-  async signAndBroadcast(methodName: string, msg: any, fee: any) {
+  async signAndBroadcast(msg: any, fee: any) {
     const encoded = this.connectedSigner.registry.encode(msg)
 
     const pubkey = encodePubkey(encodeSecp256k1Pubkey(this.pubkey))

@@ -1,79 +1,108 @@
-# AnconJS
+# CosmJS Web3Provider
 
 
 ## Install
 
-`npm install anconjs -S`
+`npm install cosmjs-web3provider -S`
 
 
 ## Usage
 
+You need to subclass `CosmJSWeb3Provider` to use a Cosmos SDK module. Query feature can be extended to support any module using *WithExtension.
+
 ```typescript
-    // Creates a new Ancon client instance
-    // isWeb = rxdb for web or node
-    // api url 
-    // rpc url
-    const client = new AnconClient(
-      false,
-      'https://apiancon.dao.pa',
-      'wss://rpcancon.dao.pa',
-      // If Keplr Wallet, add signer here
-    )
+import { Web3Provider } from '@ethersproject/providers'
+import { CosmJSWeb3Provider } from '.'
+import {
+  queryClient,
+  registry,
+} from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 
-    // User creates new wallet / optional
-    const ancon = await client.create(
-      'walletcore',
-      'abc123456789',
-      process.env.ALICE_M,
-    )
+export class AnconWeb3Provider extends CosmJSWeb3Provider {
+  constructor(
+    evmRpc: string,
+    prefix: string,
+    cosmosChainId: string,
+    evmChainId: number,
+    provider: Web3Provider,
+    defaultAccount: string,
+  ) {
+    super(evmRpc, prefix, cosmosChainId, evmChainId, provider, defaultAccount)
+  }
 
-    const address = process.env.ALICE
+  connectProvider(): Promise<this>{
+      return super.connect(queryClient, registry)
+  }
+}
 
-    // Create File message, add creator
-    const msg = {
-      creator: address,
-      contentType: 'application/json',
-      content: 'hello',
-      mode: '',
-      path: 'index.html',
-      time: new Date().getTime().toString(10),
-      did: '',
-      from: '',
-    }
+const accounts = await window.ethereum.enable();
+this.anconWeb3client = new AnconWeb3Providere(
+  'https://ancon.did.pa/evm',
+  'ancon',
+  'anconprotocol_9000-1',
+  9000,
+  new ethers.providers.Web3Provider(window.ethereum),
+  accounts[0] as string
+);
 
-    // Subscribe to Tendermint events
-    const query = `message.action='File'`
-    ancon.tendermint.subscribeTx(query).addListener({
-      next: async (log: TxEvent) => {
-        
-        // Decode response
-        const res = MsgFileResponse.decode(log.result.data)
+await this.anconWeb3client.connectProvider();
 
-        // Hack: Protobuf issue
-        const cid = res.hash.substring(10)
-        
-        
-        // Get CID content from GET /ancon/{cid} or /ancon/{cid}/{path}
-        const content = await ancon.file.get(cid, '')
+// Subscribe to messages
+const query = `message.action='Metadata'`;
+const c = this.anconWeb3client.tm.subscribeTx(query);
+const listener = {
+  next: async (log: TxEvent) => {
+    // Decode response
+    const res = MsgMetadataResponse.decode(log.result.data);
+    console.log(res);
+  }
+}
 
+// Sign and broadcast Cosmos enveloped tx (Keplr) in MsgEthereumTx (uses ancon_sendRawTransaction)
+const msg = MsgMetadata.fromPartial({
+  creator: this.anconWeb3client.cosmosAccount.address,
+  name,
+  image: 'http://localhost:8081/someimg.png',
+  additionalSources: [],
+  links: [],
+  owner: `did:ether:9000:${accounts[0]}`,
+  description,
+});
+
+
+await this.anconWeb3client.signAndBroadcast(
+  msg,
+  fee: {
+    amount: [
+      {
+        denom: "aancon",
+        amount: "2000",
       },
-    })
+    ],
+    gas: "5000000",
+  },
+);
 
-    // Create File Message request
-    // Add Cosmos uatom 
-    const receipt = await ancon.file.add(msg, {
-      fee: {
-        amount: [
-          {
-            denom: 'token',
-            amount: '4',
-          },
-        ],
-        gas: '200000',
-      },
-    })
 
+// Sign and broadcast Metamask - tx sent directly to Ethermint
+const approveTx = await this.daiWeb3contract.methods
+  .approve(this.nftWeb3Contract._address, "1000000000000000000")
+  .send({
+    gasPrice: gasPrice,
+    gas: gasLimit,
+    from: this.currentAccount,
+  });
+
+// TODO: wait 5 s
+
+const mintnft = await this.nftWeb3Contract.methods
+  .mint(this.currentAccount, uri)
+  .send({
+    gasPrice: gasPrice,
+    gas: gasLimit,
+    from: this.currentAccount,
+  });
 ```
 
 ### @molekilla for
-#### IDAO / IFESA 2021
+#### IFESA 2021

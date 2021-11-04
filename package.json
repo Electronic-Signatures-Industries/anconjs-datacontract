@@ -1,6 +1,6 @@
 {
   "name": "cosmjs-web3provider",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "",
   "scripts": {
     "test": "lib/index.js"
@@ -15,6 +15,7 @@
     "@cosmjs/tendermint-rpc": "^0.26.1",
     "@hanchon/ethermint-address-converter": "^1.1.0",
     "dotenv": "^10.0.0",
+    "ethers": "^5.5.1",
     "pouchdb-adapter-idb": "^7.2.2",
     "pouchdb-adapter-memory": "^7.2.2",
     "rxjs": "^7.1.0",

@@ -30,12 +30,11 @@ export declare class CosmJSWeb3Provider {
     constructor(url: string, prefix: string, chainId: string, evmChainId: number, wallet: ethers.providers.Web3Provider, _web3defaultAccount: string);
     /**
      * Sign and broadcast dual chain (EVM / Cosmos), used only for Cosmos Msgs
-     * @param methodName Msg name
      * @param msg Message to encode
      * @param fee Fee
      * @returns
      */
-    signAndBroadcast(methodName: string, msg: any, fee: any): Promise<any>;
+    signAndBroadcast(msg: any, fee: any): Promise<any>;
     /**
      * Connects provider
      * @returns
