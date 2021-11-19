@@ -27,7 +27,7 @@
     "out": "docs"
   },
   "include": [
-    "*.ts",
+    "*.ts", "src/accounts.ts", "src/keplrProvider.ts",
   ],
   "exclude": [
     "./types",
