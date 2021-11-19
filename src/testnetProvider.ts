@@ -5,12 +5,14 @@ import {
   broadcastTxSyncSuccess,
   pubkeyToAddress,
   Tendermint34Client,
+  TxEvent,
 } from '@cosmjs/tendermint-rpc'
 import { TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 import fetch from 'node-fetch'
 import {
   registry,
   queryClient,
+  txClient
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { hexlify } from '@ethersproject/bytes'
 import { stringToPath } from '@cosmjs/crypto'
@@ -43,6 +45,23 @@ export class HDLocalWeb3Client {
     private config: any
   ) {
     return this
+  }
+
+  getDefaultTxClient(){
+    return txClient;
+  }
+
+  subscribeToTx(name: string, cb) {
+    const query = `message.action='${name}'`;
+    const c = this.tm.subscribeTx(query);
+    
+    const listener = {
+      next: async (log: TxEvent) => {
+        cb(log);
+      },
+    };
+    c.addListener(listener);
+    return c;
   }
 
   async getPublicKey() {

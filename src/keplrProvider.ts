@@ -14,7 +14,7 @@ import { SigningStargateClient } from '@cosmjs/stargate'
 import { pubkeyToAddress, Tendermint34Client } from '@cosmjs/tendermint-rpc'
 import { TxBody, TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 import fetch from 'node-fetch'
-import { queryClient } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
+import { txClient, registry, queryClient } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { hexlify } from '@ethersproject/bytes'
 import { BroadcastMode } from '@cosmjs/launchpad'
 import config from './anconConfig'
@@ -48,6 +48,22 @@ export class KeplrWeb3Client {
     return this
   }
 
+  getTxClient(){
+    return txClient;
+  }
+
+  subscribeToTx(name: string, cb) {
+    const query = `message.action='${name}'`;
+    const c = this.tm.subscribeTx(query);
+    
+    const listener = {
+      next: async (log: TxEvent) => {
+        cb(log);
+      },
+    };
+    c.addListener(listener);
+    return c;
+  }
   async getPublicKey() {
     const key = await window.keplr.getKey(this.cosmosChainId)
     console.log(
