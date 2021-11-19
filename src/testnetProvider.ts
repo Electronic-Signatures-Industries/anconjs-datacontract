@@ -1,11 +1,6 @@
 import { createKeplrWallet } from './KeplrWrapper'
-import {
-  DirectSecp256k1HdWallet,
-  Registry
-} from '@cosmjs/proto-signing'
-import {
-  SigningStargateClient,
-} from '@cosmjs/stargate'
+import { DirectSecp256k1HdWallet, Registry } from '@cosmjs/proto-signing'
+import { SigningStargateClient } from '@cosmjs/stargate'
 import {
   broadcastTxSyncSuccess,
   pubkeyToAddress,
@@ -17,17 +12,14 @@ import {
   registry,
   queryClient,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
-import {
-  hexlify,
-} from '@ethersproject/bytes'
-import config from './anconConfig'
+import { hexlify } from '@ethersproject/bytes'
 import { stringToPath } from '@cosmjs/crypto'
 
 global['fetch'] = require('node-fetch')
 
 export class HDLocalWeb3Client {
   tm: Tendermint34Client
-  msgService: {[k: string]: {[v: string]: (...args) => any}}
+  msgService: { [k: string]: { [v: string]: (...args) => any } }
   account: any
   connectedSigner: SigningStargateClient
   queryClient: any
@@ -40,10 +32,16 @@ export class HDLocalWeb3Client {
   cosmosAccount: any
   pubkey: Uint8Array
   signer: DirectSecp256k1HdWallet
+
   /**
    * New client from mnemonic
    */
-  constructor() {
+  constructor(
+    private mnemonic: string,
+    private prefix: string,
+    private path: string,
+    private config: any
+  ) {
     return this
   }
 
@@ -69,46 +67,54 @@ export class HDLocalWeb3Client {
 
     // const pubkey = this.cosmosAccount.account.pub_key
 
-      // const txBodyEncodeObject = {
-      //   typeUrl: '/cosmos.tx.v1beta1.TxBody',
-      //   value: {
-      //     messages: [encoded],
-      //     memo: '',
-      //   },
-      // } as EncodeObject
-      // const txBodyBytes = registry.encode(txBodyEncodeObject)
-      // const gasLimit = Int53.fromString(fee.gas).toNumber()
-      // const authInfoBytes = makeAuthInfoBytes(
-      //   [
-      //     {
-      //       pubkey,
-      //       sequence: account.sequence,
-      //     },
-      //   ],
-      //   fee.amount,
-      //   gasLimit,
-      //   1,
-      // )
-      // const signDoc = makeSignDoc(
-      //   txBodyBytes,
-      //   authInfoBytes,
-      //   this.cosmosChainId,
-      //   account.account_number,
-      // )
+    // const txBodyEncodeObject = {
+    //   typeUrl: '/cosmos.tx.v1beta1.TxBody',
+    //   value: {
+    //     messages: [encoded],
+    //     memo: '',
+    //   },
+    // } as EncodeObject
+    // const txBodyBytes = registry.encode(txBodyEncodeObject)
+    // const gasLimit = Int53.fromString(fee.gas).toNumber()
+    // const authInfoBytes = makeAuthInfoBytes(
+    //   [
+    //     {
+    //       pubkey,
+    //       sequence: account.sequence,
+    //     },
+    //   ],
+    //   fee.amount,
+    //   gasLimit,
+    //   1,
+    // )
+    // const signDoc = makeSignDoc(
+    //   txBodyBytes,
+    //   authInfoBytes,
+    //   this.cosmosChainId,
+    //   account.account_number,
+    // )
 
-      const params = await this.connectedSigner.getAccount(this.cosmosAccount.address)
-    const Tx = await this.connectedSigner.sign(this.cosmosAccount.address, [encoded], fee, '', {
-      accountNumber: params.accountNumber,
-      sequence: params.sequence,
-      chainId: this.cosmosChainId,
-    })
+    const params = await this.connectedSigner.getAccount(
+      this.cosmosAccount.address,
+    )
+    const Tx = await this.connectedSigner.sign(
+      this.cosmosAccount.address,
+      [encoded],
+      fee,
+      '',
+      {
+        accountNumber: params.accountNumber,
+        sequence: params.sequence,
+        chainId: this.cosmosChainId,
+      },
+    )
     // const txsignedhex = TxRaw.fromPartial({
     //   bodyBytes: s.signed.bodyBytes,
     //   authInfoBytes: s.signed.authInfoBytes,
     //   signatures: [fromBase64(s.signature.signature)],
     // })
-    const res = await this.tm.broadcastTxSync({tx: TxRaw.encode(Tx).finish()}) 
-    
+    const res = await this.tm.broadcastTxSync({ tx: TxRaw.encode(Tx).finish() })
+
     return broadcastTxSyncSuccess(res)
 
     // window.keplr.sendTx(
@@ -118,12 +124,12 @@ export class HDLocalWeb3Client {
     // )
   }
 
-  async connect(msgclients: Array<{name: string, client: any}>) {
+  async connect(msgclients: Array<{ name: string; client: any }>) {
     await createKeplrWallet()
-    await window.keplr.enable(config.chainId);
-    this.cosmosChainId = config.chainId
-    this.rpcUrl = config.rpc
-    this.apiUrl = config.rest
+    await window.keplr.enable(this.config.chainId)
+    this.cosmosChainId = this.config.chainId
+    this.rpcUrl = this.config.rpc
+    this.apiUrl = this.config.rest
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
     // const q = QueryClient.withExtensions(
     //   this.tm,
@@ -140,39 +146,38 @@ export class HDLocalWeb3Client {
     this.signer = await DirectSecp256k1HdWallet.fromMnemonic(
       // keystore.mnemonic,
       //test dev mnemonic
-      "lend lock kit kiss walnut flower expect text upset nut arrive hub waste stairs climb neither must crowd harvest network wife lizard shiver obtain",
+      this.mnemonic,
       {
-        prefix: 'cosmos',
-        hdPaths: [stringToPath(`m/44'/118'/0'/0`)],
+        prefix: this.prefix,
+        hdPaths: [stringToPath(this.path)],
       },
     )
 
     this.cosmosAccount = (await this.signer.getAccounts())[0]
-    
+
     // const signer = window.keplr.getOfflineSigner(this.cosmosChainId)
     for (const txcli of msgclients) {
       this.msgService[txcli.name] = await txcli.client(this.signer, {
         addr: this.rpcUrl,
       })
     }
-    
+
     // const k = await window.keplr.getKey(this.cosmosChainId)
-    
+
     // this.cosmosAccount = await this.getAccountInfo(k.bech32Address)
     // this.cosmosAccount.account.pub_key = encodePubkey(
-      //   encodeSecp256k1Pubkey(Secp256k1.compressPubkey(k.pubKey)),
-      // ) as any
-      this.connectedSigner = await SigningStargateClient.connectWithSigner(
-        this.rpcUrl,
-        this.signer,
-        {
-          registry,
-  
-          prefix: 'cosmos',
-        },
-      )
-      
-    
+    //   encodeSecp256k1Pubkey(Secp256k1.compressPubkey(k.pubKey)),
+    // ) as any
+    this.connectedSigner = await SigningStargateClient.connectWithSigner(
+      this.rpcUrl,
+      this.signer,
+      {
+        registry,
+
+        prefix: 'cosmos',
+      },
+    )
+
     return this
   }
 
