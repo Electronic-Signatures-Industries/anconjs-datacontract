@@ -49,7 +49,7 @@ export class KeplrWeb3Client {
   }
 
   getTxClient(){
-    return txClient;
+    return txClient as any;
   }
 
   subscribeToTx(name: string, cb) {
@@ -57,7 +57,7 @@ export class KeplrWeb3Client {
     const c = this.tm.subscribeTx(query);
     
     const listener = {
-      next: async (log: TxEvent) => {
+      next: async (log: any) => {
         cb(log);
       },
     };

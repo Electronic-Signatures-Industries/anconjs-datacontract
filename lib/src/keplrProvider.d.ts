@@ -28,6 +28,8 @@ export declare class KeplrWeb3Client {
      * New client from mnemonic
      */
     constructor();
+    getTxClient(): any;
+    subscribeToTx(name: string, cb: any): import("xstream").Stream<import("@cosmjs/tendermint-rpc/build/tendermint34").TxEvent>;
     getPublicKey(): Promise<Uint8Array>;
     /**
      * Sign and broadcast
