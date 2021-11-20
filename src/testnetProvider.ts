@@ -134,6 +134,7 @@ export class HDLocalWeb3Client {
     // })
     const res = await this.tm.broadcastTxSync({ tx: TxRaw.encode(Tx).finish() })
 
+    console.log(res.log, hexlify(res.hash))
     return broadcastTxSyncSuccess(res)
 
     // window.keplr.sendTx(
