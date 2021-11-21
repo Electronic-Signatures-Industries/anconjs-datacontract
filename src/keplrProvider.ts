@@ -11,7 +11,7 @@ import {
   DirectSecp256k1HdWallet,
 } from '@cosmjs/proto-signing'
 import { SigningStargateClient } from '@cosmjs/stargate'
-import { pubkeyToAddress, Tendermint34Client } from '@cosmjs/tendermint-rpc'
+import { pubkeyToAddress, Tendermint34Client, TxEvent } from '@cosmjs/tendermint-rpc'
 import { TxBody, TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 import fetch from 'node-fetch'
 import { txClient, registry, queryClient } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
@@ -130,8 +130,7 @@ export class KeplrWeb3Client {
     )
   }
 
-  async connect(msgclients: Array<{ name: string; client: any }>) {
-    await createKeplrWallet()
+  async connect(msgclients: Array<{ name: string; client: any }>, next) {
     await window.keplr.enable(config.chainId)
     this.cosmosChainId = config.chainId
     this.rpcUrl = config.rpc
@@ -157,6 +156,28 @@ export class KeplrWeb3Client {
         addr: this.rpcUrl,
       })
     }
+
+    this.tm.subscribeTx().subscribe({
+      next: async (log: TxEvent) => {
+        setTimeout(async () => {
+          const res = await this.tm.tx({
+            hash: log.hash,
+            prove: true,
+          })
+         next(res)
+        }, 2000)
+      },
+    })
+
+    this.signer = window.keplr.getOfflineSigner(this.cosmosChainId)
+    this.connectedSigner = await SigningStargateClient.connectWithSigner(
+      this.rpcUrl,
+      this.signer,
+      {
+        registry,
+        prefix: 'cosmos',
+      },
+    )
 
     const k = await window.keplr.getKey(this.cosmosChainId)
 

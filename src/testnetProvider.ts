@@ -1,3 +1,4 @@
+import streamToPromise from 'stream-to-promise'
 import { createKeplrWallet } from './KeplrWrapper'
 import { DirectSecp256k1HdWallet, Registry } from '@cosmjs/proto-signing'
 import { SigningStargateClient } from '@cosmjs/stargate'
@@ -12,10 +13,11 @@ import fetch from 'node-fetch'
 import {
   registry,
   queryClient,
-  txClient
+  txClient,
 } from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { hexlify } from '@ethersproject/bytes'
-import { stringToPath } from '@cosmjs/crypto'
+import { stringToPath, sha256 } from '@cosmjs/crypto'
+import xstream from 'xstream'
 
 global['fetch'] = require('node-fetch')
 
@@ -42,26 +44,26 @@ export class HDLocalWeb3Client {
     private mnemonic: string,
     private prefix: string,
     private path: string,
-    private config: any
+    private config: any,
   ) {
     return this
   }
 
-  getDefaultTxClient(){
-    return txClient;
+  getDefaultTxClient() {
+    return txClient
   }
 
   subscribeToTx(name: string, cb) {
-    const query = `message.action='${name}'`;
-    const c = this.tm.subscribeTx(query);
-    
+    const query = `message.action='${name}'`
+    const c = this.tm.subscribeTx(query)
+
     const listener = {
       next: async (log: TxEvent) => {
-        cb(log);
+        cb(log)
       },
-    };
-    c.addListener(listener);
-    return c;
+    }
+    c.addListener(listener)
+    return c
   }
 
   async getPublicKey() {
@@ -84,35 +86,6 @@ export class HDLocalWeb3Client {
   async signAndBroadcast(encoded: any, fee: any) {
     const { account } = this.cosmosAccount
 
-    // const pubkey = this.cosmosAccount.account.pub_key
-
-    // const txBodyEncodeObject = {
-    //   typeUrl: '/cosmos.tx.v1beta1.TxBody',
-    //   value: {
-    //     messages: [encoded],
-    //     memo: '',
-    //   },
-    // } as EncodeObject
-    // const txBodyBytes = registry.encode(txBodyEncodeObject)
-    // const gasLimit = Int53.fromString(fee.gas).toNumber()
-    // const authInfoBytes = makeAuthInfoBytes(
-    //   [
-    //     {
-    //       pubkey,
-    //       sequence: account.sequence,
-    //     },
-    //   ],
-    //   fee.amount,
-    //   gasLimit,
-    //   1,
-    // )
-    // const signDoc = makeSignDoc(
-    //   txBodyBytes,
-    //   authInfoBytes,
-    //   this.cosmosChainId,
-    //   account.account_number,
-    // )
-
     const params = await this.connectedSigner.getAccount(
       this.cosmosAccount.address,
     )
@@ -127,25 +100,15 @@ export class HDLocalWeb3Client {
         chainId: this.cosmosChainId,
       },
     )
-    // const txsignedhex = TxRaw.fromPartial({
-    //   bodyBytes: s.signed.bodyBytes,
-    //   authInfoBytes: s.signed.authInfoBytes,
-    //   signatures: [fromBase64(s.signature.signature)],
-    // })
-    const res = await this.tm.broadcastTxSync({ tx: TxRaw.encode(Tx).finish() })
 
-    console.log(res.log, hexlify(res.hash))
-    return broadcastTxSyncSuccess(res)
-
-    // window.keplr.sendTx(
-    //   this.cosmosChainId,
-    //   TxRaw.encode(txsignedhex).finish(),
-    //   BroadcastMode.Sync,
-    // )
+    const tx = TxRaw.encode(Tx).finish()
+    const hash = sha256(tx)
+    const res = await this.tm.broadcastTxSync({ tx })
+    console.log(res.log, hexlify(res.hash), hash)
+    return res
   }
 
-  async connect(msgclients: Array<{ name: string; client: any }>) {
-    await createKeplrWallet()
+  async connect(msgclients: Array<{ name: string; client: any }>, next) {
     await window.keplr.enable(this.config.chainId)
     this.cosmosChainId = this.config.chainId
     this.rpcUrl = this.config.rpc
@@ -157,6 +120,18 @@ export class HDLocalWeb3Client {
     //   setupBankExtension,
     // )
 
+    this.tm.subscribeTx().subscribe({
+      next: async (log: TxEvent) => {
+        setTimeout(async () => {
+          const res = await this.tm.tx({
+            hash: log.hash,
+            prove: true,
+          })
+
+          next(res)
+        }, 2000)
+      },
+    })
     this.queryClient = await queryClient({
       addr: this.apiUrl,
     })

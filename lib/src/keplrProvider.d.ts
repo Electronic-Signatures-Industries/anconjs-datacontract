@@ -41,6 +41,6 @@ export declare class KeplrWeb3Client {
     connect(msgclients: Array<{
         name: string;
         client: any;
-    }>): Promise<this>;
+    }>, next: any): Promise<this>;
     getAccountInfo(cosmosAddress: string): Promise<any>;
 }
