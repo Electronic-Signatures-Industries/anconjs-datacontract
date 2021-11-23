@@ -1,6 +1,6 @@
 {
   "name": "anconjs-datacontract",
-  "version": "0.3.0-rc.2",
+  "version": "0.3.0-rc.3",
   "description": "",
   "scripts": {
     "test": "lib/index.js"

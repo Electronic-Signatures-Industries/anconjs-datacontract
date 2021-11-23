@@ -1,4 +1,4 @@
-import { fromBase64 } from '@cosmjs/encoding'
+import { fromBase64, fromUtf8 } from '@cosmjs/encoding'
 import { encodeSecp256k1Pubkey } from '@cosmjs/amino'
 import { Int53 } from '@cosmjs/math'
 import { Secp256k1 } from '@cosmjs/crypto'
@@ -164,7 +164,18 @@ export class KeplrWeb3Client {
             hash: log.hash,
             prove: true,
           })
-         next(res)
+          const decoded = (eventName) =>{          
+            let props = {};
+            const response = res.result.events.find((a) => a.type === eventName);
+            for (let i = 0;i<0;response.attributes.length) {
+              const item = response.attributes[i];
+              props = {
+                [fromUtf8(item.key).toLowerCase()]: fromUtf8(item.value),
+                ...props,
+              }
+            }           
+          }
+          next(res, decoded)
         }, 2000)
       },
     })
@@ -199,3 +210,4 @@ export class KeplrWeb3Client {
     return { ...res2, address: res2.account.address }
   }
 }
+7
