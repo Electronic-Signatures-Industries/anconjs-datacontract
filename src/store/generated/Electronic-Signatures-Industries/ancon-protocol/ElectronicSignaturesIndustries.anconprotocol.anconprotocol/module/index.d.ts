@@ -1,0 +1,83 @@
+import { StdFee } from "@cosmjs/launchpad";
+import { OfflineSigner, EncodeObject } from "@cosmjs/proto-signing";
+import { Api } from "./rest";
+import { MsgCreateDid } from "./types/anconprotocol/tx";
+import { MsgUpdateMetadataOwnership } from "./types/anconprotocol/tx";
+import { MsgRevokeDelegate } from "./types/anconprotocol/tx";
+import { MsgUpdateDid } from "./types/anconprotocol/tx";
+import { MsgAnchorCid } from "./types/anconprotocol/tx";
+import { MsgChangeOwner } from "./types/anconprotocol/tx";
+import { MsgEditNFT } from "./types/anconprotocol/tx";
+import { MsgMintNFT } from "./types/anconprotocol/tx";
+import { MsgUpdateDataSource } from "./types/anconprotocol/data_union";
+import { MsgMintTrustedResource } from "./types/anconprotocol/tx";
+import { MsgRevokeAttribute } from "./types/anconprotocol/tx";
+import { MsgSetAttribute } from "./types/anconprotocol/tx";
+import { MsgFile } from "./types/anconprotocol/tx";
+import { MsgRemoveDataSource } from "./types/anconprotocol/data_union";
+import { MsgTransferDenom } from "./types/anconprotocol/tx";
+import { MsgAddDataContract } from "./types/anconprotocol/tx";
+import { MsgTransferNFT } from "./types/anconprotocol/tx";
+import { MsgGrantDelegate } from "./types/anconprotocol/tx";
+import { MsgAddSchema } from "./types/anconprotocol/tx";
+import { MsgComputeDataContract } from "./types/anconprotocol/tx";
+import { MsgRoyaltyInfo } from "./types/anconprotocol/tx";
+import { MsgMintTrustedContent } from "./types/anconprotocol/tx";
+import { MsgMetadata } from "./types/anconprotocol/tx";
+import { MsgIssueDenom } from "./types/anconprotocol/tx";
+import { MsgRemoveDataUnion } from "./types/anconprotocol/data_union";
+import { MsgUpdateDataUnion } from "./types/anconprotocol/data_union";
+import { MsgBurnNFT } from "./types/anconprotocol/tx";
+import { MsgAddDataSource } from "./types/anconprotocol/data_union";
+import { MsgSendMetadataOwnership } from "./types/anconprotocol/tx";
+import { MsgRevokeDid } from "./types/anconprotocol/tx";
+import { MsgAddDataUnion } from "./types/anconprotocol/data_union";
+import { MsgAnchorCidWithProof } from "./types/anconprotocol/tx";
+export declare const MissingWalletError: Error;
+interface TxClientOptions {
+    addr: string;
+}
+interface SignAndBroadcastOptions {
+    fee: StdFee;
+    memo?: string;
+}
+declare const txClient: (wallet: OfflineSigner, { addr: addr }?: TxClientOptions) => Promise<{
+    signAndBroadcast: (msgs: EncodeObject[], { fee, memo }?: SignAndBroadcastOptions) => Promise<import("@cosmjs/stargate").BroadcastTxResponse>;
+    msgCreateDid: (data: MsgCreateDid) => EncodeObject;
+    msgUpdateMetadataOwnership: (data: MsgUpdateMetadataOwnership) => EncodeObject;
+    msgRevokeDelegate: (data: MsgRevokeDelegate) => EncodeObject;
+    msgUpdateDid: (data: MsgUpdateDid) => EncodeObject;
+    msgAnchorCid: (data: MsgAnchorCid) => EncodeObject;
+    msgChangeOwner: (data: MsgChangeOwner) => EncodeObject;
+    msgEditNFT: (data: MsgEditNFT) => EncodeObject;
+    msgMintNFT: (data: MsgMintNFT) => EncodeObject;
+    msgUpdateDataSource: (data: MsgUpdateDataSource) => EncodeObject;
+    msgMintTrustedResource: (data: MsgMintTrustedResource) => EncodeObject;
+    msgRevokeAttribute: (data: MsgRevokeAttribute) => EncodeObject;
+    msgSetAttribute: (data: MsgSetAttribute) => EncodeObject;
+    msgFile: (data: MsgFile) => EncodeObject;
+    msgRemoveDataSource: (data: MsgRemoveDataSource) => EncodeObject;
+    msgTransferDenom: (data: MsgTransferDenom) => EncodeObject;
+    msgAddDataContract: (data: MsgAddDataContract) => EncodeObject;
+    msgTransferNFT: (data: MsgTransferNFT) => EncodeObject;
+    msgGrantDelegate: (data: MsgGrantDelegate) => EncodeObject;
+    msgAddSchema: (data: MsgAddSchema) => EncodeObject;
+    msgComputeDataContract: (data: MsgComputeDataContract) => EncodeObject;
+    msgRoyaltyInfo: (data: MsgRoyaltyInfo) => EncodeObject;
+    msgMintTrustedContent: (data: MsgMintTrustedContent) => EncodeObject;
+    msgMetadata: (data: MsgMetadata) => EncodeObject;
+    msgIssueDenom: (data: MsgIssueDenom) => EncodeObject;
+    msgRemoveDataUnion: (data: MsgRemoveDataUnion) => EncodeObject;
+    msgUpdateDataUnion: (data: MsgUpdateDataUnion) => EncodeObject;
+    msgBurnNFT: (data: MsgBurnNFT) => EncodeObject;
+    msgAddDataSource: (data: MsgAddDataSource) => EncodeObject;
+    msgSendMetadataOwnership: (data: MsgSendMetadataOwnership) => EncodeObject;
+    msgRevokeDid: (data: MsgRevokeDid) => EncodeObject;
+    msgAddDataUnion: (data: MsgAddDataUnion) => EncodeObject;
+    msgAnchorCidWithProof: (data: MsgAnchorCidWithProof) => EncodeObject;
+}>;
+interface QueryClientOptions {
+    addr: string;
+}
+declare const queryClient: ({ addr: addr }?: QueryClientOptions) => Promise<Api<unknown>>;
+export { txClient, queryClient, };

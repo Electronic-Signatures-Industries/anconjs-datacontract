@@ -14,7 +14,7 @@ import {
   registry,
   queryClient,
   txClient,
-} from './generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
+} from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { hexlify } from '@ethersproject/bytes'
 import { stringToPath, sha256 } from '@cosmjs/crypto'
 import xstream from 'xstream'
