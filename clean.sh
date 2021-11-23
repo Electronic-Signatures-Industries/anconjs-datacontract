@@ -1,0 +1,1 @@
+find ./src/generated -type f -name '*.js' -exec rm {} +
