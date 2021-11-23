@@ -1,107 +1,56 @@
-# CosmJS Web3Provider
+# AnconJS Data Contract client
 
 
 ## Install
 
-`npm install cosmjs-web3provider -S`
+`npm install anconjs-datacontract -S`
 
 
 ## Usage
 
-You need to subclass `CosmJSWeb3Provider` to use a Cosmos SDK module. Query feature can be extended to support any module using *WithExtension.
+
 
 ```typescript
-import { Web3Provider } from '@ethersproject/providers'
-import { CosmJSWeb3Provider } from '.'
-import {
-  queryClient,
-  registry,
-} from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
+connect() {
+   // Testnet HD Client
+    this.client = new HDLocalWeb3Client(
+      process.env.MNEMONIC,
+      proces.env.PREFIX,
+      `m/44'/118'/0'/0`, // HD Path
+      config             // Configuration filse
+    );
 
-export class AnconWeb3Provider extends CosmJSWeb3Provider {
-  constructor(
-    evmRpc: string,
-    prefix: string,
-    cosmosChainId: string,
-    evmChainId: number,
-    provider: Web3Provider,
-    defaultAccount: string,
-  ) {
-    super(evmRpc, prefix, cosmosChainId, evmChainId, provider, defaultAccount)
-  }
+    // Connect
+    await this.client.connect(
+      [
+        {
+          name: "ancon",
+          client: txClient,
+        },
+      ],
+      // Callback to handle events
+      this.transactionCompleted
+    );
 
-  connectProvider(): Promise<this>{
-      return super.connect(queryClient, registry)
-  }
 }
 
-const accounts = await window.ethereum.enable();
-this.anconWeb3client = new AnconWeb3Provider(
-  'https://ancon.did.pa/evm',
-  'ancon',
-  'anconprotocol_9000-1',
-  9000,
-  new ethers.providers.Web3Provider(window.ethereum),
-  accounts[0] as string
-);
+   // Manage events
+  async transactionCompleted(tx: TxResponse, decoded: any) {
+    if (tx.result.events.length === 0) {
+      console.log(tx.result.log);
+      this.alertMessage = `An error has occurred`;
+      this.loading = false;
+      return;
+    }
 
-await this.anconWeb3client.connectProvider();
-
-// Subscribe to messages
-const query = `message.action='Metadata'`;
-const c = this.anconWeb3client.tm.subscribeTx(query);
-const listener = {
-  next: async (log: TxEvent) => {
-    // Decode response
-    const res = MsgMetadataResponse.decode(log.result.data);
-    console.log(res);
+    const hasCreateDid = tx.result.events.find((a) => a.type === "DidCreated");
+    const hasExecuteCompute = tx.result.events.find((a) => a.type === "ExecuteCompute");
+    if (hasCreateDid) {
+      this.alertMessage = `DID created <a href="${decoded.url}">${decoded.did}</a> stored as CID ${decoded.cid}`;
+      this.loading = false;
+    }
   }
-}
 
-// Sign and broadcast Cosmos enveloped tx (Keplr) in MsgEthereumTx (uses ancon_sendRawTransaction)
-const msg = MsgMetadata.fromPartial({
-  creator: this.anconWeb3client.cosmosAccount.address,
-  name,
-  image: 'http://localhost:8081/someimg.png',
-  additionalSources: [],
-  links: [],
-  owner: `did:ether:9000:${accounts[0]}`,
-  description,
-});
-
-
-await this.anconWeb3client.signAndBroadcast(
-  msg,
-  fee: {
-    amount: [
-      {
-        denom: "aancon",
-        amount: "2000",
-      },
-    ],
-    gas: "5000000",
-  },
-);
-
-
-// Sign and broadcast Metamask - tx sent directly to Ethermint
-const approveTx = await this.daiWeb3contract.methods
-  .approve(this.nftWeb3Contract._address, "1000000000000000000")
-  .send({
-    gasPrice: gasPrice,
-    gas: gasLimit,
-    from: this.currentAccount,
-  });
-
-// TODO: wait 5 s
-
-const mintnft = await this.nftWeb3Contract.methods
-  .mint(this.currentAccount, uri)
-  .send({
-    gasPrice: gasPrice,
-    gas: gasLimit,
-    from: this.currentAccount,
-  });
 ```
 
 ### @molekilla for

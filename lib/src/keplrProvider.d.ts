@@ -7,6 +7,9 @@ declare global {
     }
 }
 export declare class KeplrWeb3Client {
+    private prefix;
+    private path;
+    private config;
     tm: Tendermint34Client;
     msgService: {
         [k: string]: {
@@ -27,7 +30,7 @@ export declare class KeplrWeb3Client {
     /**
      * New client from mnemonic
      */
-    constructor();
+    constructor(prefix: string, path: string, config: any);
     getTxClient(): any;
     subscribeToTx(name: string, cb: any): import("xstream").Stream<import("@cosmjs/tendermint-rpc/build/tendermint34").TxEvent>;
     getPublicKey(): Promise<Uint8Array>;

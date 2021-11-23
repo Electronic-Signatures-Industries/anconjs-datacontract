@@ -1,15 +1,13 @@
-import streamToPromise from 'stream-to-promise'
-import { createKeplrWallet } from './KeplrWrapper'
 import { DirectSecp256k1HdWallet, Registry } from '@cosmjs/proto-signing'
 import { SigningStargateClient } from '@cosmjs/stargate'
 import {
-  broadcastTxSyncSuccess,
   pubkeyToAddress,
   Tendermint34Client,
   TxEvent,
 } from '@cosmjs/tendermint-rpc'
 import { TxRaw } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 import fetch from 'node-fetch'
+import { fromUtf8 } from '@cosmjs/encoding'
 import {
   registry,
   queryClient,
@@ -17,7 +15,6 @@ import {
 } from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { hexlify } from '@ethersproject/bytes'
 import { stringToPath, sha256 } from '@cosmjs/crypto'
-import xstream from 'xstream'
 
 global['fetch'] = require('node-fetch')
 
@@ -127,8 +124,18 @@ export class HDLocalWeb3Client {
             hash: log.hash,
             prove: true,
           })
-
-          next(res)
+          const decoded = (eventName) =>{          
+            let props = {};
+            const response = res.result.events.find((a) => a.type === eventName);
+            for (let i = 0;i<0;response.attributes.length) {
+              const item = response.attributes[i];
+              props = {
+                [fromUtf8(item.key).toLowerCase()]: fromUtf8(item.value),
+                ...props,
+              }
+            }           
+          }
+          next(res, decoded)
         }, 2000)
       },
     })

@@ -1,14 +1,11 @@
-import { createKeplrWallet } from './KeplrWrapper'
 import { fromBase64 } from '@cosmjs/encoding'
 import { encodeSecp256k1Pubkey } from '@cosmjs/amino'
 import { Int53 } from '@cosmjs/math'
 import { Secp256k1 } from '@cosmjs/crypto'
 import {
-  EncodeObject,
   encodePubkey,
   makeAuthInfoBytes,
   Registry,
-  DirectSecp256k1HdWallet,
 } from '@cosmjs/proto-signing'
 import { SigningStargateClient } from '@cosmjs/stargate'
 import { pubkeyToAddress, Tendermint34Client, TxEvent } from '@cosmjs/tendermint-rpc'
@@ -17,7 +14,6 @@ import fetch from 'node-fetch'
 import { txClient, registry, queryClient } from './store/generated/Electronic-Signatures-Industries/ancon-protocol/ElectronicSignaturesIndustries.anconprotocol.anconprotocol/module'
 import { hexlify } from '@ethersproject/bytes'
 import { BroadcastMode } from '@cosmjs/launchpad'
-import config from './anconConfig'
 
 global['fetch'] = require('node-fetch')
 import { Window as KeplrWindow } from '@keplr-wallet/types'
@@ -44,7 +40,11 @@ export class KeplrWeb3Client {
   /**
    * New client from mnemonic
    */
-  constructor() {
+   constructor(
+    private prefix: string,
+    private path: string,
+    private config: any,
+  ) {
     return this
   }
 
@@ -131,10 +131,10 @@ export class KeplrWeb3Client {
   }
 
   async connect(msgclients: Array<{ name: string; client: any }>, next) {
-    await window.keplr.enable(config.chainId)
-    this.cosmosChainId = config.chainId
-    this.rpcUrl = config.rpc
-    this.apiUrl = config.rest
+    await window.keplr.enable(this.config.chainId)
+    this.cosmosChainId = this.config.chainId
+    this.rpcUrl = this.config.rpc
+    this.apiUrl = this.config.rest
     this.tm = await Tendermint34Client.connect(this.rpcUrl)
     // const q = QueryClient.withExtensions(
     //   this.tm,
