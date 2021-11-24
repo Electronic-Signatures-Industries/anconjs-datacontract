@@ -1,4 +1,4 @@
-s/* eslint-disable */
+/* eslint-disable */
 import { Pool, PoolMetadata, PoolBatch, DepositMsgState, WithdrawMsgState, SwapMsgState, Params } from './liquidity'
 import { Writer, Reader } from 'protobufjs/minimal'
 
